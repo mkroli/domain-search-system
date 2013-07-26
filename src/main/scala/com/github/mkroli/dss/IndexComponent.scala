@@ -33,10 +33,10 @@ import org.apache.lucene.util.Version
 trait IndexComponent {
   self: ConfigurationComponent =>
 
-  lazy val analyzer = new StandardAnalyzer(Version.LUCENE_43)
+  lazy val analyzer = new StandardAnalyzer(Version.LUCENE_44)
   lazy val directory = new RAMDirectory
-  lazy val indexWriterConfig = new IndexWriterConfig(Version.LUCENE_43, analyzer)
-  lazy val queryParser = new MultiFieldQueryParser(Version.LUCENE_43,
+  lazy val indexWriterConfig = new IndexWriterConfig(Version.LUCENE_44, analyzer)
+  lazy val queryParser = new MultiFieldQueryParser(Version.LUCENE_44,
     "text" :: "host" :: "domain" :: Nil toArray,
     analyzer,
     mapAsJavaMap(Map("text" -> 1.0f, "host" -> 0.75f, "domain" -> 0.5f)))

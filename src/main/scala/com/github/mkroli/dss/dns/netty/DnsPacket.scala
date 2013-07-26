@@ -15,19 +15,23 @@
  */
 package com.github.mkroli.dss.dns.netty
 
-import org.jboss.netty.buffer.ChannelBuffers
-import org.jboss.netty.channel.Channel
-import org.jboss.netty.channel.ChannelHandlerContext
-import org.jboss.netty.handler.codec.oneone.OneToOneEncoder
+import java.net.InetSocketAddress
 
 import com.github.mkroli.dss.dns.Message
 
-class DnsEncoder extends OneToOneEncoder {
-  override def encode(ctx: ChannelHandlerContext, channel: Channel, msg: AnyRef) = msg match {
-    case dns: Message =>
-      val response = dns()
-      response.flip()
-      ChannelBuffers.copiedBuffer(response)
-    case msg => msg
-  }
+import io.netty.channel.DefaultAddressedEnvelope
+
+class DnsPacket(
+  msg: Message,
+  dst: InetSocketAddress,
+  src: InetSocketAddress)
+  extends DefaultAddressedEnvelope[Message, InetSocketAddress](
+    msg, dst, src)
+
+object DnsPacket {
+  def apply(msg: Message, dst: InetSocketAddress, src: InetSocketAddress) =
+    new DnsPacket(msg, dst, src)
+
+  def apply(msg: Message, dst: InetSocketAddress) =
+    new DnsPacket(msg, dst, null)
 }

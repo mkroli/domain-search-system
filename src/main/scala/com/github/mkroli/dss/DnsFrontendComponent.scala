@@ -16,32 +16,28 @@
 package com.github.mkroli.dss
 
 import java.net.InetSocketAddress
-import java.net.SocketAddress
 import java.util.concurrent.TimeUnit
 
 import scala.collection.JavaConversions
 
-import org.jboss.netty.bootstrap.ConnectionlessBootstrap
-import org.jboss.netty.channel.ChannelHandlerContext
-import org.jboss.netty.channel.ChannelPipelineFactory
-import org.jboss.netty.channel.Channels
-import org.jboss.netty.channel.FixedReceiveBufferSizePredictorFactory
-import org.jboss.netty.channel.MessageEvent
-import org.jboss.netty.channel.SimpleChannelUpstreamHandler
-import org.jboss.netty.channel.socket.nio.NioDatagramChannelFactory
-
 import com.github.mkroli.dss.dns.Message
 import com.github.mkroli.dss.dns.dsl.DnsMessage
-import com.github.mkroli.dss.dns.netty.DnsDecoder
-import com.github.mkroli.dss.dns.netty.DnsEncoder
+import com.github.mkroli.dss.dns.netty.DnsCodec
+import com.github.mkroli.dss.dns.netty.DnsPacket
 import com.github.mkroli.dss.dns.section.HeaderSection
 import com.github.mkroli.dss.dns.section.QuestionSection
 import com.github.mkroli.dss.dns.section.ResourceRecord
-import com.github.mkroli.dss.dns.section.resource.AResource
 import com.github.mkroli.dss.dns.section.resource.CNameResource
 import com.google.common.cache.CacheBuilder
 
 import akka.pattern.ask
+import io.netty.bootstrap.Bootstrap
+import io.netty.channel.ChannelHandlerContext
+import io.netty.channel.ChannelInitializer
+import io.netty.channel.SimpleChannelInboundHandler
+import io.netty.channel.nio.NioEventLoopGroup
+import io.netty.channel.socket.DatagramChannel
+import io.netty.channel.socket.nio.NioDatagramChannel
 
 trait DnsFrontendComponent {
   self: AkkaComponent with SearchComponent with ConfigurationComponent =>
@@ -52,26 +48,24 @@ trait DnsFrontendComponent {
     config.getInt("server.fallback.port"))
 
   lazy val channel = {
-    val f = new NioDatagramChannelFactory()
-    val b = new ConnectionlessBootstrap(f)
-    b.setPipelineFactory(new ChannelPipelineFactory {
-      override def getPipeline() = Channels.pipeline(
-        new DnsDecoder(),
-        new DnsEncoder(),
-        new DnsHandler())
-    })
-    b.setOption("receiveBufferSizePredictorFactory",
-      new FixedReceiveBufferSizePredictorFactory(512))
-    b.bind(new InetSocketAddress(listenPort))
+    val b = new Bootstrap()
+      .group(new NioEventLoopGroup)
+      .channel(classOf[NioDatagramChannel])
+      .handler(new ChannelInitializer[DatagramChannel] {
+        override def initChannel(ch: DatagramChannel) {
+          ch.pipeline().addLast(new DnsCodec, new DnsHandler)
+        }
+      })
+      .bind(listenPort)
   }
 
-  class DnsHandler extends SimpleChannelUpstreamHandler {
+  class DnsHandler extends SimpleChannelInboundHandler[DnsPacket] {
     val idLock = new AnyRef
     @volatile var nextFreeId = 0
 
     val requests = JavaConversions.mapAsScalaMap(CacheBuilder.newBuilder()
       .expireAfterWrite(10, TimeUnit.SECONDS)
-      .build[Integer, (SocketAddress, Message, Option[String])]()
+      .build[Integer, (InetSocketAddress, Message, Option[String])]()
       .asMap())
 
     private def findSearchableQuestion(dnsMessage: Message) = dnsMessage.question.find {
@@ -82,21 +76,23 @@ trait DnsFrontendComponent {
       case _ => false
     }
 
-    override def messageReceived(ctx: ChannelHandlerContext, e: MessageEvent) {
-      e.getMessage match {
+    override def channelRead0(ctx: ChannelHandlerContext, msg: DnsPacket) {
+      msg.content match {
         case request: Message if request.header.qr == HeaderSection.qrQuery =>
           val id = idLock.synchronized {
             nextFreeId = (nextFreeId + 1) % 0x10000
             nextFreeId
           }
-          requests.put(id, (e.getRemoteAddress(), request, None))
-          channel.write(request.copy(header = request.header.copy(id = id)), fallbackDnsAddress)
+          requests.put(id, (msg.sender, request, None))
+          ctx.writeAndFlush(DnsPacket(
+            request.copy(header = request.header.copy(id = id)),
+            fallbackDnsAddress))
         case response: Message =>
-          def respond(response: Message, remote: SocketAddress) {
+          def respond(response: Message, remote: InetSocketAddress) {
             requests.remove(response.header.id)
-            channel.write(response, remote)
+            ctx.writeAndFlush(DnsPacket(response, remote))
           }
-          def pass(request: Message, remote: SocketAddress) {
+          def pass(request: Message, remote: InetSocketAddress) {
             respond(response.copy(header = response.header.copy(id = request.header.id)), remote)
           }
           requests.get(response.header.id).foreach {
@@ -120,11 +116,12 @@ trait DnsFrontendComponent {
                 searchActor ? searchableQuestion.qname.replace('.', ' ') onSuccess {
                   case Some(result: String) =>
                     requests.put(response.header.id, (remote, request, Some(result)))
-                    channel.write(DnsMessage
-                      .id(response.header.id)
-                      .withQuestion(QuestionSection(result, searchableQuestion.qtype, searchableQuestion.qclass))
-                      .build(),
-                      fallbackDnsAddress)
+                    ctx.writeAndFlush(DnsPacket(
+                      DnsMessage
+                        .id(response.header.id)
+                        .withQuestion(QuestionSection(result, searchableQuestion.qtype, searchableQuestion.qclass))
+                        .build(),
+                      fallbackDnsAddress))
                   case _ => pass(request, remote)
                 }
               case _ => pass(request, remote)

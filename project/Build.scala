@@ -34,10 +34,11 @@ object Build extends sbt.Build {
       "com.google.code.findbugs" % "jsr305" % "2.0.1" % "provided",
       "com.typesafe" % "config" % "1.0.2",
       "com.typesafe.akka" %% "akka-actor" % "2.2.0",
-      "io.netty" % "netty" % "3.6.6.Final",
-      "org.apache.lucene" % "lucene-core" % "4.3.1",
-      "org.apache.lucene" % "lucene-analyzers-common" % "4.3.1",
-      "org.apache.lucene" % "lucene-queryparser" % "4.3.1"))
+      "io.netty" % "netty-transport" % "4.0.4.Final",
+      "io.netty" % "netty-handler" % "4.0.4.Final",
+      "org.apache.lucene" % "lucene-core" % "4.4.0",
+      "org.apache.lucene" % "lucene-analyzers-common" % "4.4.0",
+      "org.apache.lucene" % "lucene-queryparser" % "4.4.0"))
 
   lazy val projectClasspathSettings = Seq(
     unmanagedSourceDirectories in Compile <++= baseDirectory { base =>

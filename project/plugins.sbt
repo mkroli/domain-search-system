@@ -18,3 +18,5 @@ addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "2.2.0")
 addSbtPlugin("org.xerial.sbt" % "sbt-pack" % "0.2")
 
 addSbtPlugin("com.github.gseitz" % "sbt-release" % "0.7")
+
+addSbtPlugin("com.timushev.sbt" % "sbt-updates" % "0.1.2")
