@@ -24,8 +24,8 @@ trait IndexReaderComponent {
   private val dssHosts = """([^ \t]+)(?:[ \t]+(.+))?"""r
 
   Source.fromInputStream(getClass.getResourceAsStream("/dss.hosts")).getLines.foreach {
-    case dssHosts(host, null) => addToIndex(host, "")
-    case dssHosts(host, description) => addToIndex(host, description)
+    case dssHosts(host, null) => indexActor ! AddToIndex(host, "")
+    case dssHosts(host, description) => indexActor ! AddToIndex(host, description)
     case line => println("Couldn't parse %s".format(line))
   }
 }

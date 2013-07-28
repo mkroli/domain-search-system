@@ -17,6 +17,7 @@ package com.github.mkroli.dss
 
 import akka.actor.Actor
 import akka.actor.Props
+import akka.pattern.ask
 
 trait SearchComponent {
   self: AkkaComponent with IndexComponent =>
@@ -26,9 +27,10 @@ trait SearchComponent {
   class SearchActor extends Actor {
     override def receive = {
       case query: String =>
-        search(query).toList match {
-          case head :: _ => sender ! Some(head)
-          case _ => sender ! None
+        val s = sender
+        (indexActor ? SearchIndex(query)).mapTo[Seq[String]].map(_.toList) onSuccess {
+          case head :: _ => s ! Some(head)
+          case _ => s ! None
         }
     }
   }
