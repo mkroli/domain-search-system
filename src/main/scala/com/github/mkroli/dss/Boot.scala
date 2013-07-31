@@ -21,7 +21,6 @@ object Boot extends App {
     ConfigurationComponent with
     DnsFrontendComponent with
     IndexComponent with
-    IndexReaderComponent with
     SearchComponent with
     HttpComponent
 
