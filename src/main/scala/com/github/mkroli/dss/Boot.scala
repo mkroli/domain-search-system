@@ -22,7 +22,8 @@ object Boot extends App {
     DnsFrontendComponent with
     IndexComponent with
     IndexReaderComponent with
-    SearchComponent
+    SearchComponent with
+    HttpComponent
 
   applicationContext.channel
 }

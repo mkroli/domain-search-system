@@ -15,6 +15,8 @@
  */
 package com.github.mkroli.dss
 
+import java.io.File
+
 import scala.collection.JavaConversions.mapAsJavaMap
 import scala.language.postfixOps
 
@@ -25,15 +27,18 @@ import org.apache.lucene.document.TextField
 import org.apache.lucene.index.DirectoryReader
 import org.apache.lucene.index.IndexWriter
 import org.apache.lucene.index.IndexWriterConfig
+import org.apache.lucene.index.Term
 import org.apache.lucene.queryparser.classic.MultiFieldQueryParser
 import org.apache.lucene.search.IndexSearcher
+import org.apache.lucene.search.MatchAllDocsQuery
+import org.apache.lucene.search.TermQuery
+import org.apache.lucene.store.MMapDirectory
 import org.apache.lucene.store.RAMDirectory
 import org.apache.lucene.util.Version
 
 import akka.actor.Actor
 import akka.actor.FSM
 import akka.actor.Props
-import akka.actor.actorRef2Scala
 
 trait IndexComponent {
   self: ConfigurationComponent with AkkaComponent =>
@@ -42,6 +47,7 @@ trait IndexComponent {
 
   case class AddToIndex(host: String, description: String)
   case class SearchIndex(query: String)
+  case class GetAllDocuments(start: Int, end: Int)
 
   sealed abstract class State
   case object Committed extends State
@@ -49,7 +55,10 @@ trait IndexComponent {
 
   class IndexActor extends Actor with FSM[State, Either[IndexWriter, (DirectoryReader, IndexSearcher)]] {
     val analyzer = new StandardAnalyzer(Version.LUCENE_44)
-    val directory = new RAMDirectory
+    val directory = config.getString("index.filename") match {
+      case fn if fn.isEmpty => new RAMDirectory
+      case fn => new MMapDirectory(new File(fn))
+    }
     val indexWriterConfig = new IndexWriterConfig(Version.LUCENE_44, analyzer)
     val queryParser = new MultiFieldQueryParser(Version.LUCENE_44,
       "text" :: "host" :: "domain" :: Nil toArray,
@@ -63,9 +72,10 @@ trait IndexComponent {
         case hostName :: tail => (hostName, tail.mkString("."))
         case _ => ("", "")
       }
+      indexWriter.deleteDocuments(new TermQuery(new Term("id", host)))
       val doc = new Document
       doc.add(new Field("id", host, TextField.TYPE_STORED))
-      doc.add(new Field("text", description, TextField.TYPE_NOT_STORED))
+      doc.add(new Field("text", description, TextField.TYPE_STORED))
       if (includeHostname) doc.add(new Field("host", hostName, TextField.TYPE_NOT_STORED))
       if (includeDomain) doc.add(new Field("domain", domainName, TextField.TYPE_NOT_STORED))
       indexWriter.addDocument(doc)
@@ -76,6 +86,16 @@ trait IndexComponent {
       indexSearcher.search(q, 3).scoreDocs.toSeq.map { d =>
         indexSearcher.doc(d.doc).get("id")
       }
+    }
+
+    def getAllDocs(indexSearcher: IndexSearcher, start: Int, end: Int) = {
+      indexSearcher
+        .search(new MatchAllDocsQuery, end)
+        .scoreDocs
+        .toSeq
+        .drop(start)
+        .map(_.doc)
+        .map(indexSearcher.doc)
     }
 
     startWith(Uncommitted, Left(new IndexWriter(directory, indexWriterConfig)))
@@ -89,17 +109,23 @@ trait IndexComponent {
       case Event(SearchIndex(query), Right((_, indexSearcher))) =>
         sender ! search(indexSearcher, query)
         stay
+      case Event(GetAllDocuments(start, end), Right((_, indexSearcher))) =>
+        sender ! getAllDocs(indexSearcher, start, end)
+        stay
     }
 
     when(Uncommitted) {
       case Event(AddToIndex(host, description), Left(indexWriter)) =>
         addToIndex(indexWriter, host, description)
         stay
-      case Event(SearchIndex(query), Left(indexWriter)) =>
+      case Event(msg @ (SearchIndex(_) | GetAllDocuments(_, _)), Left(indexWriter)) =>
         indexWriter.close()
         val indexReader = DirectoryReader.open(directory)
         val indexSearcher = new IndexSearcher(indexReader)
-        sender ! search(indexSearcher, query)
+        msg match {
+          case SearchIndex(query) => sender ! search(indexSearcher, query)
+          case GetAllDocuments(start, end) => sender ! getAllDocs(indexSearcher, start, end)
+        }
         goto(Committed) using Right((indexReader, indexSearcher))
     }
   }
