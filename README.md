@@ -33,9 +33,6 @@ Remember that DNS binds to UDP port 53 which requires root-privileges.
 Configuration
 -------------
 
-The configuration is split in application configuration and configuration of
-the search index.
-
 dss.conf:
 
 	server {
@@ -50,8 +47,5 @@ dss.conf:
 	  host = true           # whether to include the hostname in the search index
 	  domain = true         # whether to include the domainname in the search index
 	}
-
-dss.hosts:
-
-	github.com			git code share
-	mkroli.github.io	michael krolikowski
+	
+	http.port = 5380        # port of the admin ui
