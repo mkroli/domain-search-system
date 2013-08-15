@@ -1,0 +1,87 @@
+<!--
+Copyright 2013 Michael Krolikowski
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DSS - Domain Search System</title>
+<link href="css/dss.css" rel="stylesheet">
+<script src="js/dss.js" type="text/javascript"></script>
+</head>
+<body ng-app="dss" ng-controller="DSSController">
+	<div class="container">
+		<div class="page-header">
+			<h1 class="visible-sm">DSS</h1>
+			<h1 class="hidden-sm">DSS - Domain Search System</h1>
+		</div>
+
+		<div class="row hidden-sm">
+			<div class="col-sm-3">
+				<strong>Domainname</strong>
+			</div>
+			<div class="col-sm-7">
+				<strong>Description</strong>
+			</div>
+			<div class="col-sm-2">
+				<strong>Actions</strong>
+			</div>
+		</div>
+
+		<div class="row" ng-repeat="domainname in index | orderBy:'id'">
+			<div>
+				<div class="col-sm-3 top-margin">
+					<input type="text" disabled class="form-control"
+						ng-model="domainname.id">
+				</div>
+				<div class="col-sm-7 top-margin">
+					<input type="text" required placeholder="Description"
+						class="form-control" ng-model="domainname.text">
+				</div>
+				<div class="col-sm-2 top-margin">
+					<div class="progress progress-striped active"
+						ng-hide="domainname.state">
+						<div class="progress-bar" style="width: 100%"></div>
+					</div>
+					<div class="btn-group btn-group-justified"
+						ng-show="domainname.state">
+						<a class="btn btn-primary" ng-click="save(domainname)">Save</a> <a
+							class="btn btn-danger" ng-click="delete(domainname)">Delete</a>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="row" ng-init="new.state = true">
+			<div class="col-sm-3 top-margin">
+				<input type="text" required placeholder="Domainname"
+					class="form-control" ng-model="new.id">
+			</div>
+			<div class="col-sm-7 top-margin">
+				<input type="text" required placeholder="Description"
+					class="form-control" ng-model="new.text">
+			</div>
+			<div class="col-sm-2 top-margin">
+				<div class="progress progress-striped active" ng-hide="new.state">
+					<div class="progress-bar" style="width: 100%"></div>
+				</div>
+				<a class="btn btn-block btn-primary" ng-click="save(new)"
+					ng-show="new.state">Save</a>
+			</div>
+		</div>
+	</div>
+</body>
+</html>

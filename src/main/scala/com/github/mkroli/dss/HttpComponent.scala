@@ -16,16 +16,16 @@
 package com.github.mkroli.dss
 
 import scala.collection.JavaConversions.asScalaBuffer
-
 import org.apache.lucene.document.Document
 import org.json4s.JsonDSL.WithBigDecimal._
 import org.json4s.native.JsonMethods.compact
 import org.json4s.native.JsonMethods.render
-
+import com.github.mkroli.dss.http.Rewrite
 import akka.actor.actorRef2Scala
 import akka.pattern.ask
 import unfiltered.kit.GZip
 import unfiltered.netty.Http
+import unfiltered.netty.Resources
 import unfiltered.netty.async.Planify
 import unfiltered.request.Body
 import unfiltered.request.GET
@@ -35,12 +35,23 @@ import unfiltered.request.Seg
 import unfiltered.response.JsonContent
 import unfiltered.response.NoContent
 import unfiltered.response.ResponseString
+import unfiltered.request.DELETE
 
 trait HttpComponent {
   self: ConfigurationComponent with AkkaComponent with IndexComponent =>
 
+  lazy val resourcesPlan = {
+    val resources = new Resources(
+      getClass.getResource("/com/github/mkroli/dss/static/"),
+      cacheSeconds = 3600)
+
+    Planify(GZip.async(Rewrite.async(resources.intent) {
+      case GET(Path(Seg(Nil))) => "/index.html"
+    }))
+  }
+
   lazy val indexPlan = Planify(GZip.async {
-    case req @ GET(Path(Seg(Nil))) =>
+    case req @ GET(Path(Seg("api" :: Nil))) =>
       (indexActor ? GetAllDocuments(0, 65535)).mapTo[Seq[Document]].onSuccess {
         case docs =>
           val json = docs.map { doc =>
@@ -50,13 +61,17 @@ trait HttpComponent {
           }
           req.respond(JsonContent ~> ResponseString(compact(render(json))))
       }
-    case req @ PUT(Path(Seg(id :: Nil))) =>
+    case req @ PUT(Path(Seg("api" :: id :: Nil))) =>
       indexActor ! AddToIndex(id, Body.string(req))
+      req.respond(NoContent)
+    case req @ DELETE(Path(Seg("api" :: id :: Nil))) =>
+      indexActor ! RemoveFromIndex(id)
       req.respond(NoContent)
   })
 
-  Http(config.getInt("http.port"))
+  Http.local(config.getInt("http.port"))
     .chunked(1048576)
+    .plan(resourcesPlan)
     .plan(indexPlan)
     .start
 }

@@ -46,6 +46,7 @@ trait IndexComponent {
   lazy val indexActor = actorSystem.actorOf(Props(new IndexActor))
 
   case class AddToIndex(host: String, description: String)
+  case class RemoveFromIndex(host: String)
   case class SearchIndex(query: String)
   case class GetAllDocuments(start: Int, end: Int)
 
@@ -72,13 +73,17 @@ trait IndexComponent {
         case hostName :: tail => (hostName, tail.mkString("."))
         case _ => ("", "")
       }
-      indexWriter.deleteDocuments(new TermQuery(new Term("id", host)))
+      removeFromIndex(indexWriter, host)
       val doc = new Document
       doc.add(new Field("id", host, TextField.TYPE_STORED))
       doc.add(new Field("text", description, TextField.TYPE_STORED))
       if (includeHostname) doc.add(new Field("host", hostName, TextField.TYPE_NOT_STORED))
       if (includeDomain) doc.add(new Field("domain", domainName, TextField.TYPE_NOT_STORED))
       indexWriter.addDocument(doc)
+    }
+
+    def removeFromIndex(indexWriter: IndexWriter, host: String) {
+      indexWriter.deleteDocuments(new TermQuery(new Term("id", host)))
     }
 
     def search(indexSearcher: IndexSearcher, query: String) = {
@@ -101,10 +106,13 @@ trait IndexComponent {
     startWith(Uncommitted, Left(new IndexWriter(directory, indexWriterConfig)))
 
     when(Committed) {
-      case Event(msg @ AddToIndex(host, description), Right((indexReader, _))) =>
+      case Event(msg @ (AddToIndex(_, _) | RemoveFromIndex(_)), Right((indexReader, _))) =>
         indexReader.close()
         val indexWriter = new IndexWriter(directory, indexWriterConfig)
-        addToIndex(indexWriter, host, description)
+        msg match {
+          case AddToIndex(host, description) => addToIndex(indexWriter, host, description)
+          case RemoveFromIndex(host) => removeFromIndex(indexWriter, host)
+        }
         goto(Uncommitted) using Left(indexWriter)
       case Event(SearchIndex(query), Right((_, indexSearcher))) =>
         sender ! search(indexSearcher, query)
@@ -117,6 +125,9 @@ trait IndexComponent {
     when(Uncommitted) {
       case Event(AddToIndex(host, description), Left(indexWriter)) =>
         addToIndex(indexWriter, host, description)
+        stay
+      case Event(RemoveFromIndex(host), Left(indexWriter)) =>
+        removeFromIndex(indexWriter, host)
         stay
       case Event(msg @ (SearchIndex(_) | GetAllDocuments(_, _)), Left(indexWriter)) =>
         indexWriter.close()

@@ -20,6 +20,8 @@ import sbtrelease.ReleasePlugin._
 import sbtrelease.ReleasePlugin.ReleaseKeys._
 import sbtrelease.ReleaseStateTransformations._
 import xerial.sbt.Pack._
+import com.untyped.sbtjs.Plugin._
+import com.untyped.sbtless.Plugin._
 
 object Build extends sbt.Build {
   lazy val projectSettings = Seq(
@@ -58,6 +60,28 @@ object Build extends sbt.Build {
     packJvmOpts := Map("dss" -> Seq("-Dlogback.configurationFile=${PROG_HOME}/etc/logback.xml")),
     packExtraClasspath := Map("dss" -> Seq("${PROG_HOME}/etc")))
 
+  lazy val projectJsSettings = Seq(
+    JsKeys.variableRenamingPolicy in Compile := VariableRenamingPolicy.OFF,
+    compile in Compile <<= compile in Compile dependsOn (JsKeys.js in Compile),
+    sourceDirectory in (Compile, JsKeys.js) <<= (sourceDirectory in Compile) { d =>
+      d / "javascript"
+    },
+    resourceManaged in (Compile, JsKeys.js) <<= (resourceManaged in Compile) { d =>
+      d / "com/github/mkroli/dss/static/js"
+    },
+    resourceGenerators in Compile <+= (JsKeys.js in Compile),
+    includeFilter in (Compile, JsKeys.js) := "*.jsm")
+
+  lazy val projectLessSettings = Seq(
+    compile in Compile <<= compile in Compile dependsOn (LessKeys.less in Compile),
+    sourceDirectory in (Compile, LessKeys.less) <<= (sourceDirectory in Compile) { d =>
+      d / "less"
+    },
+    resourceManaged in (Compile, LessKeys.less) <<= (resourceManaged in Compile) { d =>
+      d / "com/github/mkroli/dss/static/css"
+    },
+    resourceGenerators in Compile <+= (LessKeys.less in Compile))
+
   lazy val projectReleaseSettings = Seq(
     releaseProcess := Seq[ReleaseStep](
       checkSnapshotDependencies,
@@ -79,5 +103,9 @@ object Build extends sbt.Build {
       packSettings ++
       projectPackSettings ++
       releaseSettings ++
-      projectReleaseSettings)
+      projectReleaseSettings ++
+      jsSettings ++
+      projectJsSettings ++
+      lessSettings ++
+      projectLessSettings)
 }
