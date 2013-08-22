@@ -17,6 +17,7 @@ package com.github.mkroli.dss
 
 import scala.collection.JavaConversions.asScalaBuffer
 import org.apache.lucene.document.Document
+import org.jboss.netty.handler.stream.ChunkedWriteHandler
 import org.json4s.JsonDSL.WithBigDecimal._
 import org.json4s.native.JsonMethods.compact
 import org.json4s.native.JsonMethods.render
@@ -73,5 +74,6 @@ trait HttpComponent {
     .chunked(1048576)
     .plan(resourcesPlan)
     .plan(indexPlan)
+    .makePlan(new ChunkedWriteHandler)
     .start
 }
