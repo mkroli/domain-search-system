@@ -23,7 +23,7 @@ import scala.math.BigInt
 package object dns {
   implicit class ByteBufferHelper(buf: ByteBuffer) {
     def getBytes(bytes: Int) = {
-      require(bytes > 0)
+      require(bytes >= 0)
       (0 until bytes).map(_ => buf.get())
     }
 
@@ -109,7 +109,10 @@ package object dns {
     }
 
     def putDomainName(dn: String) = {
-      buf.put(dn.split("""\.""").flatMap(s => s.size.toByte +: s.getBytes)).put(0: Byte)
+      buf.put(dn.split("""\.""")
+        .filterNot(_.isEmpty)
+        .flatMap(s => s.size.toByte +: s.getBytes))
+        .put(0: Byte)
     }
   }
 }
