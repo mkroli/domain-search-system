@@ -24,5 +24,9 @@ object Boot extends App {
     SearchComponent with
     HttpComponent
 
+  applicationContext.actorSystem
+  applicationContext.indexActor
+  applicationContext.searchActor
   applicationContext.channel
+  applicationContext.http
 }

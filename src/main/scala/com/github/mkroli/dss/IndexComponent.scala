@@ -23,6 +23,7 @@ import scala.language.postfixOps
 import org.apache.lucene.analysis.standard.StandardAnalyzer
 import org.apache.lucene.document.Document
 import org.apache.lucene.document.Field
+import org.apache.lucene.document.StringField
 import org.apache.lucene.document.TextField
 import org.apache.lucene.index.DirectoryReader
 import org.apache.lucene.index.IndexWriter
@@ -75,10 +76,10 @@ trait IndexComponent {
       }
       removeFromIndex(indexWriter, host)
       val doc = new Document
-      doc.add(new Field("id", host, TextField.TYPE_STORED))
-      doc.add(new Field("text", description, TextField.TYPE_STORED))
-      if (includeHostname) doc.add(new Field("host", hostName, TextField.TYPE_NOT_STORED))
-      if (includeDomain) doc.add(new Field("domain", domainName, TextField.TYPE_NOT_STORED))
+      doc.add(new StringField("id", host, Field.Store.YES))
+      doc.add(new TextField("text", description, Field.Store.YES))
+      if (includeHostname) doc.add(new StringField("host", hostName, Field.Store.NO))
+      if (includeDomain) doc.add(new StringField("domain", domainName, Field.Store.NO))
       indexWriter.addDocument(doc)
     }
 

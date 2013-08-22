@@ -69,7 +69,7 @@ trait HttpComponent {
       req.respond(NoContent)
   })
 
-  Http.local(config.getInt("http.port"))
+  lazy val http = Http.local(config.getInt("http.port"))
     .chunked(1048576)
     .plan(resourcesPlan)
     .plan(indexPlan)

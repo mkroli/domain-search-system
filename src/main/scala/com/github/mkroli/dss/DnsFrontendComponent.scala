@@ -48,7 +48,7 @@ trait DnsFrontendComponent {
     config.getInt("server.fallback.port"))
 
   lazy val channel = {
-    val b = new Bootstrap()
+    new Bootstrap()
       .group(new NioEventLoopGroup)
       .channel(classOf[NioDatagramChannel])
       .handler(new ChannelInitializer[DatagramChannel] {
@@ -57,6 +57,7 @@ trait DnsFrontendComponent {
         }
       })
       .bind(listenPort)
+      .awaitUninterruptibly()
   }
 
   class DnsHandler extends SimpleChannelInboundHandler[DnsPacket] {
