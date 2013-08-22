@@ -35,6 +35,8 @@ object Build extends sbt.Build {
       "com.google.guava" % "guava" % "14.0.1",
       "com.google.code.findbugs" % "jsr305" % "2.0.1" % "provided",
       "com.typesafe" % "config" % "1.0.2",
+      "com.typesafe" %% "scalalogging-slf4j" % "1.0.1",
+      "ch.qos.logback" % "logback-classic" % "1.0.13",
       "com.typesafe.akka" %% "akka-actor" % "2.2.0",
       "io.netty" % "netty-transport" % "4.0.4.Final",
       "io.netty" % "netty-handler" % "4.0.4.Final",

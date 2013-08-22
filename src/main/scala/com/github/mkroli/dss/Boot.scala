@@ -15,7 +15,9 @@
  */
 package com.github.mkroli.dss
 
-object Boot extends App {
+import com.typesafe.scalalogging.slf4j.Logging
+
+object Boot extends App with Logging {
   val applicationContext = new AnyRef with
     AkkaComponent with
     ConfigurationComponent with
@@ -29,4 +31,6 @@ object Boot extends App {
   applicationContext.searchActor
   applicationContext.channel
   applicationContext.http
+
+  logger.info("Booted")
 }
