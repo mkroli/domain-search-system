@@ -66,7 +66,7 @@ trait DnsFrontendComponent {
 
     val requests = JavaConversions.mapAsScalaMap(CacheBuilder.newBuilder()
       .expireAfterWrite(10, TimeUnit.SECONDS)
-      .build[Integer, (InetSocketAddress, Message, Option[String])]()
+      .build[Integer, (InetSocketAddress, Message, Option[String], Boolean)]()
       .asMap())
 
     private def findSearchableQuestion(dnsMessage: Message) = dnsMessage.question.find {
@@ -84,7 +84,7 @@ trait DnsFrontendComponent {
             nextFreeId = (nextFreeId + 1) % 0x10000
             nextFreeId
           }
-          requests.put(id, (msg.sender, request, None))
+          requests.put(id, (msg.sender, request, None, false))
           ctx.writeAndFlush(DnsPacket(
             request.copy(header = request.header.copy(id = id)),
             fallbackDnsAddress))
@@ -97,8 +97,8 @@ trait DnsFrontendComponent {
             respond(response.copy(header = response.header.copy(id = request.header.id)), remote)
           }
           requests.get(response.header.id).foreach {
-            case (remote, request, searchResult) if !request.question.isEmpty => (findSearchableQuestion(request), response) match {
-              case (Some(searchableQuestion), response) if response.header.rcode == HeaderSection.rcodeNoError =>
+            case (remote, request, searchResult, searchLookedUp) if !request.question.isEmpty => (findSearchableQuestion(request), response) match {
+              case (Some(searchableQuestion), response) if searchLookedUp =>
                 val baseResult = DnsMessage(response)
                   .id(request.header.id)
                   .withoutQuestions
@@ -116,7 +116,7 @@ trait DnsFrontendComponent {
               case (Some(searchableQuestion), response) =>
                 searchActor ? searchableQuestion.qname.replace('.', ' ') onSuccess {
                   case Some(result: String) =>
-                    requests.put(response.header.id, (remote, request, Some(result)))
+                    requests.put(response.header.id, (remote, request, Some(result), true))
                     ctx.writeAndFlush(DnsPacket(
                       DnsMessage
                         .id(response.header.id)
