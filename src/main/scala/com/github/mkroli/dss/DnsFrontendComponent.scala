@@ -98,7 +98,7 @@ trait DnsFrontendComponent {
           }
           requests.get(response.header.id).foreach {
             case (remote, request, searchResult, searchLookedUp) if !request.question.isEmpty => (findSearchableQuestion(request), response) match {
-              case (Some(searchableQuestion), response) if searchLookedUp =>
+              case (Some(searchableQuestion), response) if response.header.rcode == HeaderSection.rcodeNoError || searchLookedUp =>
                 val baseResult = DnsMessage(response)
                   .id(request.header.id)
                   .withoutQuestions
