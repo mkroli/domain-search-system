@@ -78,8 +78,8 @@ trait IndexComponent {
       val doc = new Document
       doc.add(new StringField("id", host, Field.Store.YES))
       doc.add(new TextField("text", description, Field.Store.YES))
-      if (includeHostname) doc.add(new StringField("host", hostName, Field.Store.NO))
-      if (includeDomain) doc.add(new StringField("domain", domainName, Field.Store.NO))
+      if (includeHostname) doc.add(new TextField("host", hostName, Field.Store.NO))
+      if (includeDomain) doc.add(new TextField("domain", domainName, Field.Store.NO))
       indexWriter.addDocument(doc)
     }
 

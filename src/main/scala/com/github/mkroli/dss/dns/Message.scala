@@ -28,7 +28,7 @@ case class Message(
   authority: Seq[ResourceRecord],
   additional: Seq[ResourceRecord]) {
   def apply(): ByteBuffer = {
-    val bytes = ByteBuffer.allocate(512)
+    val bytes = ByteBuffer.allocate(4096)
     header(bytes)
     question.map(_(bytes))
     answer.map(_(bytes))
