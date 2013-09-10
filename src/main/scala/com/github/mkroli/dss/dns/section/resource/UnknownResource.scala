@@ -15,16 +15,14 @@
  */
 package com.github.mkroli.dss.dns.section.resource
 
-import java.nio.ByteBuffer
-
-import com.github.mkroli.dss.dns.ByteBufferHelper
+import com.github.mkroli.dss.dns.MessageBuffer
 import com.github.mkroli.dss.dns.section.Resource
 
 case class UnknownResource(bytes: Seq[Byte], `type`: Int) extends Resource {
-  def apply(buf: ByteBuffer) = buf.putBytes(bytes.size, bytes.toArray)
+  def apply(buf: MessageBuffer) = buf.putBytes(bytes.size, bytes.toArray)
 }
 
 object UnknownResource {
-  def apply(bytes: ByteBuffer, size: Int, `type`: Int) =
-    new UnknownResource(bytes.getBytes(size), `type`)
+  def apply(buf: MessageBuffer, size: Int, `type`: Int) =
+    new UnknownResource(buf.getBytes(size), `type`)
 }

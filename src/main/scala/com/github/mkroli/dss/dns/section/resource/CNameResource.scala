@@ -15,15 +15,13 @@
  */
 package com.github.mkroli.dss.dns.section.resource
 
-import java.nio.ByteBuffer
-
-import com.github.mkroli.dss.dns.ByteBufferHelper
+import com.github.mkroli.dss.dns.MessageBuffer
 import com.github.mkroli.dss.dns.section.Resource
 
 case class CNameResource(cname: String) extends Resource {
-  def apply(bytes: ByteBuffer) = bytes.putDomainName(cname)
+  def apply(buf: MessageBuffer) = buf.putDomainName(cname)
 }
 
 object CNameResource {
-  def apply(bytes: ByteBuffer) = new CNameResource(bytes.getDomainName())
+  def apply(buf: MessageBuffer) = new CNameResource(buf.getDomainName())
 }

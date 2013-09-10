@@ -17,18 +17,17 @@ package com.github.mkroli.dss.dns.section.resource
 
 import java.net.Inet4Address
 import java.net.InetAddress
-import java.nio.ByteBuffer
 
-import com.github.mkroli.dss.dns.ByteBufferHelper
+import com.github.mkroli.dss.dns.MessageBuffer
 import com.github.mkroli.dss.dns.section.Resource
 
 case class AResource(address: Inet4Address) extends Resource {
-  def apply(bytes: ByteBuffer) = bytes.put(address.getAddress())
+  def apply(buf: MessageBuffer) = buf.put(address.getAddress())
 }
 
 object AResource {
-  def apply(bytes: ByteBuffer) = {
-    InetAddress.getByAddress(bytes.getBytes(4).toArray) match {
+  def apply(buf: MessageBuffer) = {
+    InetAddress.getByAddress(buf.getBytes(4).toArray) match {
       case addr: Inet4Address => new AResource(addr)
     }
   }

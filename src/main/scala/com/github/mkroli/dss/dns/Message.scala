@@ -15,8 +15,6 @@
  */
 package com.github.mkroli.dss.dns
 
-import java.nio.ByteBuffer
-
 import com.github.mkroli.dss.dns.section.HeaderSection
 import com.github.mkroli.dss.dns.section.QuestionSection
 import com.github.mkroli.dss.dns.section.ResourceRecord
@@ -27,19 +25,19 @@ case class Message(
   answer: Seq[ResourceRecord],
   authority: Seq[ResourceRecord],
   additional: Seq[ResourceRecord]) {
-  def apply(): ByteBuffer = {
-    val bytes = ByteBuffer.allocate(4096)
-    header(bytes)
-    question.map(_(bytes))
-    answer.map(_(bytes))
-    authority.map(_(bytes))
-    additional.map(_(bytes))
-    bytes
+  def apply(): MessageBuffer = {
+    (header +:
+      (question ++
+        answer ++
+        authority ++
+        additional)).foldLeft(MessageBuffer()) { (buf, encoder) =>
+          encoder(buf)
+        }
   }
 }
 
 object Message {
-  def apply(bytes: ByteBuffer): Message = {
+  def apply(bytes: MessageBuffer): Message = {
     val header = HeaderSection(bytes)
     new Message(
       header,
@@ -49,7 +47,7 @@ object Message {
       (1 to header.arcount).map(_ => ResourceRecord(bytes)))
   }
 
-  def unapply(bytes: ByteBuffer): Option[(HeaderSection, Seq[QuestionSection], Seq[ResourceRecord], Seq[ResourceRecord], Seq[ResourceRecord])] = {
+  def unapply(bytes: MessageBuffer): Option[(HeaderSection, Seq[QuestionSection], Seq[ResourceRecord], Seq[ResourceRecord], Seq[ResourceRecord])] = {
     try {
       val message = Message(bytes)
       Some(message.header, message.question, message.answer, message.authority, message.additional)

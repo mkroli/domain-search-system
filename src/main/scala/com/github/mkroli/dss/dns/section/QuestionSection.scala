@@ -15,16 +15,15 @@
  */
 package com.github.mkroli.dss.dns.section
 
-import java.nio.ByteBuffer
-
-import com.github.mkroli.dss.dns.ByteBufferHelper
+import com.github.mkroli.dss.dns.MessageBuffer
+import com.github.mkroli.dss.dns.MessageBufferEncoder
 
 case class QuestionSection(
   qname: String,
   qtype: Int,
-  qclass: Int) {
-  def apply(bytes: ByteBuffer) = {
-    bytes
+  qclass: Int) extends MessageBufferEncoder {
+  def apply(buf: MessageBuffer) = {
+    buf
       .putDomainName(qname)
       .putUnsignedInt(2, qtype)
       .putUnsignedInt(2, qclass)
@@ -32,10 +31,10 @@ case class QuestionSection(
 }
 
 object QuestionSection {
-  def apply(bytes: ByteBuffer) = {
+  def apply(buf: MessageBuffer) = {
     new QuestionSection(
-      bytes.getDomainName(),
-      bytes.getUnsignedInt(2),
-      bytes.getUnsignedInt(2))
+      buf.getDomainName(),
+      buf.getUnsignedInt(2),
+      buf.getUnsignedInt(2))
   }
 }

@@ -15,9 +15,8 @@
  */
 package com.github.mkroli.dss.dns.dsl
 
-import java.nio.ByteBuffer
-
 import com.github.mkroli.dss.dns.Message
+import com.github.mkroli.dss.dns.MessageBuffer
 import com.github.mkroli.dss.dns.section.HeaderSection
 import com.github.mkroli.dss.dns.section.QuestionSection
 import com.github.mkroli.dss.dns.section.Resource
@@ -70,7 +69,7 @@ class DnsMessage private (msg: Message) {
       case NSResource(_) => ResourceRecord.typeNS
       case UnknownResource(_, t) => t
     }
-    val buf = resource(ByteBuffer.allocate(512))
+    val buf = resource(MessageBuffer())
     buf.flip()
     new ResourceRecord(name, `type`, `class`, ttl, buf.remaining(), resource)
   }

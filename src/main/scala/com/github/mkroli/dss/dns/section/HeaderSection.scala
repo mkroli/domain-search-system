@@ -15,9 +15,8 @@
  */
 package com.github.mkroli.dss.dns.section
 
-import java.nio.ByteBuffer
-
-import com.github.mkroli.dss.dns.ByteBufferHelper
+import com.github.mkroli.dss.dns.MessageBuffer
+import com.github.mkroli.dss.dns.MessageBufferEncoder
 
 case class HeaderSection(
   id: Int,
@@ -31,8 +30,8 @@ case class HeaderSection(
   qdcount: Int,
   ancount: Int,
   nscount: Int,
-  arcount: Int) {
-  def apply(bytes: ByteBuffer) = {
+  arcount: Int) extends MessageBufferEncoder {
+  def apply(buf: MessageBuffer) = {
     val tmpQr = if (qr) 1 << 15 else 0
     val tmpOpcode = (opcode & 15) << 11
     val tmpAa = if (aa) 1 << 10 else 0
@@ -42,7 +41,7 @@ case class HeaderSection(
     val tmpRcode = rcode & 15
     val tmp = tmpQr | tmpOpcode | tmpAa | tmpTc | tmpRd | tmpRa | tmpRcode
 
-    bytes
+    buf
       .putUnsignedInt(2, id)
       .putUnsignedInt(2, tmp)
       .putUnsignedInt(2, qdcount)
@@ -67,9 +66,9 @@ object HeaderSection {
   val rcodeNotImplemented = 4
   val rcodeRefused = 5
 
-  def apply(bytes: ByteBuffer) = {
-    val id = bytes.getUnsignedInt(2)
-    val tmp = bytes.getUnsignedInt(2)
+  def apply(buf: MessageBuffer) = {
+    val id = buf.getUnsignedInt(2)
+    val tmp = buf.getUnsignedInt(2)
     new HeaderSection(
       id = id,
       qr = (tmp & (1 << 15)) != 0,
@@ -79,9 +78,9 @@ object HeaderSection {
       rd = (tmp & (1 << 8)) != 0,
       ra = (tmp & (1 << 7)) != 0,
       rcode = tmp & 15,
-      qdcount = bytes.getUnsignedInt(2),
-      ancount = bytes.getUnsignedInt(2),
-      nscount = bytes.getUnsignedInt(2),
-      arcount = bytes.getUnsignedInt(2))
+      qdcount = buf.getUnsignedInt(2),
+      ancount = buf.getUnsignedInt(2),
+      nscount = buf.getUnsignedInt(2),
+      arcount = buf.getUnsignedInt(2))
   }
 }

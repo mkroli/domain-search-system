@@ -18,6 +18,7 @@ package com.github.mkroli.dss.dns.netty
 import java.util.{ List => JList }
 
 import com.github.mkroli.dss.dns.Message
+import com.github.mkroli.dss.dns.MessageBuffer
 
 import io.netty.buffer.Unpooled
 import io.netty.channel.ChannelHandlerContext
@@ -29,14 +30,14 @@ class DnsCodec extends MessageToMessageCodec[DatagramPacket, DnsPacket] {
     val response = msg.content()()
     response.flip
     out.add(new DatagramPacket(
-      Unpooled.copiedBuffer(response),
+      Unpooled.copiedBuffer(response.buf),
       msg.recipient,
       msg.sender))
   }
 
   override def decode(ctx: ChannelHandlerContext, msg: DatagramPacket, out: JList[AnyRef]) {
     out.add(DnsPacket(
-      Message(msg.content.nioBuffer),
+      Message(MessageBuffer(msg.content.nioBuffer)),
       msg.recipient,
       msg.sender))
   }

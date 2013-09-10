@@ -15,13 +15,13 @@
  */
 package com.github.mkroli.dss.dns.section
 
-import java.nio.ByteBuffer
-
-import com.github.mkroli.dss.dns.ByteBufferHelper
+import com.github.mkroli.dss.dns.MessageBuffer
 import com.github.mkroli.dss.dns.section.resource.AResource
 import com.github.mkroli.dss.dns.section.resource.CNameResource
 import com.github.mkroli.dss.dns.section.resource.NSResource
 import com.github.mkroli.dss.dns.section.resource.UnknownResource
+import com.github.mkroli.dss.dns.MessageBufferEncoder
+import java.nio.ByteBuffer
 
 case class ResourceRecord(
   name: String,
@@ -29,19 +29,14 @@ case class ResourceRecord(
   `class`: Int,
   ttl: Long,
   rdlength: Int,
-  rdata: Resource) {
-  def apply(bytes: ByteBuffer) = {
-    val data = rdata(ByteBuffer.allocate(512))
-    data.flip
-    val header = bytes
+  rdata: Resource) extends MessageBufferEncoder {
+  def apply(buf: MessageBuffer) = {
+    buf
       .putDomainName(name)
       .putUnsignedInt(2, `type`)
       .putUnsignedInt(2, `class`)
       .putUnsignedLong(4, ttl)
-      .putUnsignedInt(2, rdlength)
-    (0 until data.remaining()).foldLeft(header) { (buf, i) =>
-      buf.put(data.get())
-    }
+      .putLengthOf(2, rdata.apply)
   }
 }
 
@@ -74,17 +69,17 @@ object ResourceRecord {
   val classHS = 4
   val qclassAsterisk = 255
 
-  def apply(bytes: ByteBuffer) = {
-    val name = bytes.getDomainName()
-    val `type` = bytes.getUnsignedInt(2)
-    val `class` = bytes.getUnsignedInt(2)
-    val ttl = bytes.getUnsignedLong(4)
-    val rdlength = bytes.getUnsignedInt(2)
+  def apply(buf: MessageBuffer) = {
+    val name = buf.getDomainName()
+    val `type` = buf.getUnsignedInt(2)
+    val `class` = buf.getUnsignedInt(2)
+    val ttl = buf.getUnsignedLong(4)
+    val rdlength = buf.getUnsignedInt(2)
     val rdata = `type` match {
-      case 1 => AResource(bytes)
-      case 2 => NSResource(bytes)
-      case 5 => CNameResource(bytes)
-      case _ => UnknownResource(bytes, rdlength, `type`)
+      case 1 => AResource(buf)
+      case 2 => NSResource(buf)
+      case 5 => CNameResource(buf)
+      case _ => UnknownResource(buf, rdlength, `type`)
     }
     new ResourceRecord(name, `type`, `class`, ttl, rdlength, rdata)
   }

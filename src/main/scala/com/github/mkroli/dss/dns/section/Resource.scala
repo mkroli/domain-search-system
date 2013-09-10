@@ -15,8 +15,8 @@
  */
 package com.github.mkroli.dss.dns.section
 
-import java.nio.ByteBuffer
+import com.github.mkroli.dss.dns.MessageBuffer
 
 abstract class Resource {
-  def apply(bytes: ByteBuffer): ByteBuffer
+  def apply(buf: MessageBuffer): MessageBuffer
 }
