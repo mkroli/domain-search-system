@@ -19,8 +19,6 @@ addSbtPlugin("org.xerial.sbt" % "sbt-pack" % "0.2.4")
 
 addSbtPlugin("com.github.gseitz" % "sbt-release" % "0.7")
 
-addSbtPlugin("com.timushev.sbt" % "sbt-updates" % "0.1.2")
-
 addSbtPlugin("com.untyped" %% "sbt-js" % "0.5")
 
 addSbtPlugin("com.untyped" %% "sbt-less" % "0.5")
