@@ -88,7 +88,10 @@ trait IndexComponent {
     }
 
     def search(indexSearcher: IndexSearcher, query: String) = {
-      val q = queryParser.parse(query)
+      val terms = query.split("""\s+""").toList
+      val p = terms.map(_ + "*") ++ terms.map(_ + "~") mkString (" ")
+      val q = queryParser.parse(p)
+
       indexSearcher.search(q, 3).scoreDocs.toSeq.map { d =>
         indexSearcher.doc(d.doc).get("id")
       }
