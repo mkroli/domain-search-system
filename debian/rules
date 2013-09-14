@@ -1,0 +1,18 @@
+#!/usr/bin/make -f
+
+SBT_LAUNCH_JAR=/tmp/sbt-launch.jar
+SBT=java -jar $(SBT_LAUNCH_JAR)
+
+sbt:
+	[ -r $(SBT_LAUNCH_JAR) ] \
+		|| wget -O $(SBT_LAUNCH_JAR) \
+			http://repo.typesafe.com/typesafe/ivy-releases/org.scala-sbt/sbt-launch//0.12.4/sbt-launch.jar
+
+override_dh_auto_clean:
+	rm -rf target project/target project/project
+
+override_dh_auto_build: sbt
+	$(SBT) clean pack
+
+%:
+	dh $@

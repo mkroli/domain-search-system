@@ -1,0 +1,3 @@
+target/pack/bin opt/dss
+target/pack/etc opt/dss
+target/pack/lib opt/dss

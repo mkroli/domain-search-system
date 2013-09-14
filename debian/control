@@ -1,0 +1,13 @@
+Source: dss
+Section: misc
+Priority: extra
+Maintainer: Michael Krolikowski <mkroli@yahoo.de>
+Build-Depends: debhelper (>= 7), wget, java-compiler, java6-sdk | java7-jdk
+Standards-Version: 3.7.3
+Homepage: http://github.com/mkroli/domain-search-system
+
+Package: dss
+Architecture: all
+Depends: java6-sdk | java7-jdk
+Description: DSS (Domain-Search-System) adds search to DNS (Domain-Name-System)
+ The DSS (Domain-Search-System) adds search to DNS (Domain-Name-System).
