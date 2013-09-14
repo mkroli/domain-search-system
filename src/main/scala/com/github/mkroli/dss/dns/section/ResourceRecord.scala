@@ -16,12 +16,14 @@
 package com.github.mkroli.dss.dns.section
 
 import com.github.mkroli.dss.dns.MessageBuffer
+import com.github.mkroli.dss.dns.MessageBufferEncoder
 import com.github.mkroli.dss.dns.section.resource.AResource
 import com.github.mkroli.dss.dns.section.resource.CNameResource
+import com.github.mkroli.dss.dns.section.resource.MXResource
 import com.github.mkroli.dss.dns.section.resource.NSResource
+import com.github.mkroli.dss.dns.section.resource.PTRResource
+import com.github.mkroli.dss.dns.section.resource.SOAResource
 import com.github.mkroli.dss.dns.section.resource.UnknownResource
-import com.github.mkroli.dss.dns.MessageBufferEncoder
-import java.nio.ByteBuffer
 
 case class ResourceRecord(
   name: String,
@@ -79,6 +81,9 @@ object ResourceRecord {
       case 1 => AResource(buf)
       case 2 => NSResource(buf)
       case 5 => CNameResource(buf)
+      case 6 => SOAResource(buf)
+      case 12 => PTRResource(buf)
+      case 15 => MXResource(buf)
       case _ => UnknownResource(buf, rdlength, `type`)
     }
     new ResourceRecord(name, `type`, `class`, ttl, rdlength, rdata)

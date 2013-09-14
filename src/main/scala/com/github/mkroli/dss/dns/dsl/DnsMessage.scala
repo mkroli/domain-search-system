@@ -23,7 +23,10 @@ import com.github.mkroli.dss.dns.section.Resource
 import com.github.mkroli.dss.dns.section.ResourceRecord
 import com.github.mkroli.dss.dns.section.resource.AResource
 import com.github.mkroli.dss.dns.section.resource.CNameResource
+import com.github.mkroli.dss.dns.section.resource.MXResource
 import com.github.mkroli.dss.dns.section.resource.NSResource
+import com.github.mkroli.dss.dns.section.resource.PTRResource
+import com.github.mkroli.dss.dns.section.resource.SOAResource
 import com.github.mkroli.dss.dns.section.resource.UnknownResource
 
 class DnsMessage private (msg: Message) {
@@ -65,8 +68,11 @@ class DnsMessage private (msg: Message) {
     `class`: Int) = {
     val `type` = resource match {
       case AResource(_) => ResourceRecord.typeA
-      case CNameResource(_) => ResourceRecord.typeCNAME
       case NSResource(_) => ResourceRecord.typeNS
+      case CNameResource(_) => ResourceRecord.typeCNAME
+      case SOAResource(_, _, _, _, _, _, _) => ResourceRecord.typeSOA
+      case PTRResource(_) => ResourceRecord.typePTR
+      case MXResource(_, _) => ResourceRecord.typeMX
       case UnknownResource(_, t) => t
     }
     val buf = resource(MessageBuffer())
