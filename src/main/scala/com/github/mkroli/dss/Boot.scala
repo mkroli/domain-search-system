@@ -24,7 +24,8 @@ object Boot extends App with Logging {
     DnsFrontendComponent with
     IndexComponent with
     SearchComponent with
-    HttpComponent
+    HttpComponent with
+    MetricsComponent
 
   applicationContext.actorSystem
   applicationContext.indexActor

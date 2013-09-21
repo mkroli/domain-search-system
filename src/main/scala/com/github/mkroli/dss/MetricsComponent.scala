@@ -15,26 +15,15 @@
  */
 package com.github.mkroli.dss
 
-import akka.actor.Actor
-import akka.actor.Props
-import akka.pattern.ask
+import com.codahale.metrics.MetricRegistry
+import com.codahale.metrics.JmxReporter
+import nl.grons.metrics.scala.InstrumentedBuilder
 
-trait SearchComponent {
-  self: AkkaComponent with IndexComponent with MetricsComponent =>
+trait MetricsComponent {
+  val metricRegistry = new MetricRegistry()
+  JmxReporter.forRegistry(metricRegistry).build.start
 
-  lazy val searchActor = actorSystem.actorOf(Props(new SearchActor))
-
-  class SearchActor extends Actor with Instrumented {
-    val requestsMetric = metrics.meter("requests")
-
-    override def receive = {
-      case query: String =>
-        requestsMetric.mark
-        val s = sender
-        (indexActor ? SearchIndex(query)).mapTo[Seq[String]].map(_.toList) onSuccess {
-          case head :: _ => s ! Some(head)
-          case _ => s ! None
-        }
-    }
+  trait Instrumented extends InstrumentedBuilder {
+    override val metricRegistry = MetricsComponent.this.metricRegistry
   }
 }

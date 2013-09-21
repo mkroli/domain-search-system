@@ -45,7 +45,8 @@ object Build extends sbt.Build {
       "org.apache.lucene" % "lucene-queryparser" % "4.4.0",
       "net.databinder" %% "unfiltered-netty" % "0.7.0",
       "net.databinder" %% "unfiltered-netty-server" % "0.7.0",
-      "org.json4s" %% "json4s-native" % "3.2.5"))
+      "org.json4s" %% "json4s-native" % "3.2.5",
+      "nl.grons" %% "metrics-scala" % "3.0.3"))
 
   lazy val projectClasspathSettings = Seq(
     unmanagedSourceDirectories in Compile <++= baseDirectory { base =>

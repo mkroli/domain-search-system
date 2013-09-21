@@ -40,7 +40,7 @@ import io.netty.channel.socket.DatagramChannel
 import io.netty.channel.socket.nio.NioDatagramChannel
 
 trait DnsFrontendComponent {
-  self: AkkaComponent with SearchComponent with ConfigurationComponent =>
+  self: AkkaComponent with SearchComponent with ConfigurationComponent with MetricsComponent =>
 
   lazy val listenPort: Int = config.getInt("server.bind.port")
   lazy val fallbackDnsAddress = new InetSocketAddress(
@@ -60,7 +60,7 @@ trait DnsFrontendComponent {
       .awaitUninterruptibly()
   }
 
-  class DnsHandler extends SimpleChannelInboundHandler[DnsPacket] {
+  class DnsHandler extends SimpleChannelInboundHandler[DnsPacket] with Instrumented {
     val idLock = new AnyRef
     @volatile var nextFreeId = 0
 
@@ -68,6 +68,8 @@ trait DnsFrontendComponent {
       .expireAfterWrite(10, TimeUnit.SECONDS)
       .build[Integer, (InetSocketAddress, Message, Option[String], Boolean)]()
       .asMap())
+
+    val requestsMetric = metrics.meter("requests")
 
     private def findSearchableQuestion(dnsMessage: Message) = dnsMessage.question.find {
       case QuestionSection(_,
@@ -80,6 +82,7 @@ trait DnsFrontendComponent {
     override def channelRead0(ctx: ChannelHandlerContext, msg: DnsPacket) {
       msg.content match {
         case request: Message if request.header.qr == HeaderSection.qrQuery =>
+          requestsMetric.mark
           val id = idLock.synchronized {
             nextFreeId = (nextFreeId + 1) % 0x10000
             nextFreeId
