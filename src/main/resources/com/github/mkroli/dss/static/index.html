@@ -25,18 +25,18 @@ limitations under the License.
 <body ng-app="dss" ng-controller="DSSController">
 	<div class="container">
 		<div class="page-header">
-			<h1 class="visible-sm">DSS</h1>
-			<h1 class="hidden-sm">DSS - Domain Search System</h1>
+			<h1 class="visible-xs">DSS</h1>
+			<h1 class="hidden-xs">DSS - Domain Search System</h1>
 		</div>
 
-		<div class="row hidden-sm">
-			<div class="col-sm-3">
+		<div class="row hidden-xs">
+			<div class="col-xs-3">
 				<strong>Domainname</strong>
 			</div>
-			<div class="col-sm-7">
+			<div class="col-xs-7">
 				<strong>Description</strong>
 			</div>
-			<div class="col-sm-2">
+			<div class="col-xs-2">
 				<strong>Actions</strong>
 			</div>
 		</div>
@@ -47,11 +47,11 @@ limitations under the License.
 					<input type="text" disabled class="form-control"
 						ng-model="domainname.id">
 				</div>
-				<div class="col-sm-7 top-margin">
+				<div class="col-sm-6 col-md-7 top-margin">
 					<input type="text" required placeholder="Description"
 						class="form-control" ng-model="domainname.text">
 				</div>
-				<div class="col-sm-2 top-margin">
+				<div class="col-sm-3 col-md-2 top-margin">
 					<div class="progress progress-striped active"
 						ng-hide="domainname.state">
 						<div class="progress-bar" style="width: 100%"></div>
@@ -70,11 +70,11 @@ limitations under the License.
 				<input type="text" required placeholder="Domainname"
 					class="form-control" ng-model="new.id">
 			</div>
-			<div class="col-sm-7 top-margin">
+			<div class="col-sm-6 col-md-7 top-margin">
 				<input type="text" required placeholder="Description"
 					class="form-control" ng-model="new.text">
 			</div>
-			<div class="col-sm-2 top-margin">
+			<div class="col-sm-3 col-md-2 top-margin">
 				<div class="progress progress-striped active" ng-hide="new.state">
 					<div class="progress-bar" style="width: 100%"></div>
 				</div>
