@@ -18,6 +18,7 @@ package com.github.mkroli.dss
 import java.io.File
 
 import scala.collection.JavaConversions.mapAsJavaMap
+import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps
 
 import org.apache.lucene.analysis.standard.StandardAnalyzer
@@ -126,20 +127,21 @@ trait IndexComponent {
         stay
     }
 
-    when(Uncommitted) {
+    when(Uncommitted, stateTimeout = 1 second) {
       case Event(AddToIndex(host, description), Left(indexWriter)) =>
         addToIndex(indexWriter, host, description)
         stay
       case Event(RemoveFromIndex(host), Left(indexWriter)) =>
         removeFromIndex(indexWriter, host)
         stay
-      case Event(msg @ (SearchIndex(_) | GetAllDocuments(_, _)), Left(indexWriter)) =>
+      case Event(msg @ (SearchIndex(_) | GetAllDocuments(_, _) | StateTimeout), Left(indexWriter)) =>
         indexWriter.close()
         val indexReader = DirectoryReader.open(directory)
         val indexSearcher = new IndexSearcher(indexReader)
         msg match {
           case SearchIndex(query) => sender ! search(indexSearcher, query)
           case GetAllDocuments(start, end) => sender ! getAllDocs(indexSearcher, start, end)
+          case _ =>
         }
         goto(Committed) using Right((indexReader, indexSearcher))
     }
