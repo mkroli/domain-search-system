@@ -93,9 +93,9 @@ trait IndexComponent {
       val p = terms.map(_ + "*") ++ terms.map(_ + "~") mkString (" ")
       val q = queryParser.parse(p)
 
-      indexSearcher.search(q, 3).scoreDocs.toSeq.map { d =>
+      indexSearcher.search(q, 1).scoreDocs.toSeq.map { d =>
         indexSearcher.doc(d.doc).get("id")
-      }
+      }.headOption
     }
 
     def getAllDocs(indexSearcher: IndexSearcher, start: Int, end: Int) = {

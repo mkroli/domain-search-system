@@ -16,122 +16,73 @@
 package com.github.mkroli.dss
 
 import java.net.InetSocketAddress
-import java.util.concurrent.TimeUnit
-
-import scala.collection.JavaConversions
-
 import com.github.mkroli.dss.dns.Message
+import com.github.mkroli.dss.dns.akka.DnsActor
+import com.github.mkroli.dss.dns.akka.DnsPacket
 import com.github.mkroli.dss.dns.dsl.DnsMessage
-import com.github.mkroli.dss.dns.netty.DnsCodec
-import com.github.mkroli.dss.dns.netty.DnsPacket
-import com.github.mkroli.dss.dns.section.HeaderSection
+import com.github.mkroli.dss.dns.dsl.ErrorMessage
 import com.github.mkroli.dss.dns.section.QuestionSection
 import com.github.mkroli.dss.dns.section.ResourceRecord
 import com.github.mkroli.dss.dns.section.resource.CNameResource
-import com.google.common.cache.CacheBuilder
-
+import akka.actor.Actor
+import akka.actor.Props
 import akka.pattern.ask
-import io.netty.bootstrap.Bootstrap
-import io.netty.channel.ChannelHandlerContext
-import io.netty.channel.ChannelInitializer
-import io.netty.channel.SimpleChannelInboundHandler
-import io.netty.channel.nio.NioEventLoopGroup
-import io.netty.channel.socket.DatagramChannel
-import io.netty.channel.socket.nio.NioDatagramChannel
+import akka.pattern.pipe
+import scala.concurrent.Future
 
 trait DnsFrontendComponent {
-  self: AkkaComponent with SearchComponent with ConfigurationComponent with MetricsComponent =>
+  self: AkkaComponent with IndexComponent with ConfigurationComponent with MetricsComponent =>
 
   lazy val listenPort: Int = config.getInt("server.bind.port")
   lazy val fallbackDnsAddress = new InetSocketAddress(
     config.getString("server.fallback.address"),
     config.getInt("server.fallback.port"))
 
-  lazy val channel = {
-    new Bootstrap()
-      .group(new NioEventLoopGroup)
-      .channel(classOf[NioDatagramChannel])
-      .handler(new ChannelInitializer[DatagramChannel] {
-        override def initChannel(ch: DatagramChannel) {
-          ch.pipeline().addLast(new DnsCodec, new DnsHandler)
-        }
-      })
-      .bind(listenPort)
-      .awaitUninterruptibly()
-  }
+  lazy val dnsHandlerActor = actorSystem.actorOf(Props(new DnsHandlerActor))
+  lazy val dnsActor = actorSystem.actorOf(Props(new DnsActor(listenPort, dnsHandlerActor, timeout)))
 
-  class DnsHandler extends SimpleChannelInboundHandler[DnsPacket] with Instrumented {
-    val idLock = new AnyRef
-    @volatile var nextFreeId = 0
-
-    val requests = JavaConversions.mapAsScalaMap(CacheBuilder.newBuilder()
-      .expireAfterWrite(10, TimeUnit.SECONDS)
-      .build[Integer, (InetSocketAddress, Message, Option[String], Boolean)]()
-      .asMap())
-
+  class DnsHandlerActor extends Actor with Instrumented {
     val requestsMetric = metrics.meter("requests")
 
-    private def findSearchableQuestion(dnsMessage: Message) = dnsMessage.question.find {
-      case QuestionSection(_,
-        ResourceRecord.typeA |
-        ResourceRecord.typeAAAA,
-        ResourceRecord.classIN) => true
-      case _ => false
+    private object SearchableQuestion {
+      def unapply(message: Message) = message.question.find {
+        case QuestionSection(_,
+          ResourceRecord.typeA |
+          ResourceRecord.typeAAAA,
+          ResourceRecord.classIN) => true
+        case _ => false
+      }
     }
 
-    override def channelRead0(ctx: ChannelHandlerContext, msg: DnsPacket) {
-      msg.content match {
-        case request: Message if request.header.qr == HeaderSection.qrQuery =>
-          requestsMetric.mark
-          val id = idLock.synchronized {
-            nextFreeId = (nextFreeId + 1) % 0x10000
-            nextFreeId
-          }
-          requests.put(id, (msg.sender, request, None, false))
-          ctx.writeAndFlush(DnsPacket(
-            request.copy(header = request.header.copy(id = id)),
-            fallbackDnsAddress))
-        case response: Message =>
-          def respond(response: Message, remote: InetSocketAddress) {
-            requests.remove(response.header.id)
-            ctx.writeAndFlush(DnsPacket(response, remote))
-          }
-          def pass(request: Message, remote: InetSocketAddress) {
-            respond(response.copy(header = response.header.copy(id = request.header.id)), remote)
-          }
-          requests.get(response.header.id).foreach {
-            case (remote, request, searchResult, searchLookedUp) if !request.question.isEmpty => (findSearchableQuestion(request), response) match {
-              case (Some(searchableQuestion), response) if response.header.rcode == HeaderSection.rcodeNoError || searchLookedUp =>
-                val baseResult = DnsMessage(response)
-                  .id(request.header.id)
-                  .withoutQuestions
-                  .withoutAnswers
-                val resultWithQuestions = request.question.foldLeft(baseResult) { (dnsMessage, question) =>
-                  dnsMessage.withQuestion(question)
+    override def receive = {
+      case originalRequest: Message =>
+        requestsMetric.mark
+        val origin = sender
+        dnsActor ? DnsPacket(originalRequest, fallbackDnsAddress) flatMap {
+          case ErrorMessage(answer @ SearchableQuestion(question)) =>
+            indexActor ? SearchIndex(question.qname.replace('.', ' ')) flatMap {
+              case Some(result: String) =>
+                val lookup = DnsPacket(
+                  DnsMessage.withQuestion(question.copy(qname = result)).build,
+                  fallbackDnsAddress)
+                dnsActor ? lookup map {
+                  case answer: Message =>
+                    val baseResult = DnsMessage(answer)
+                      .withoutQuestions
+                      .withoutAnswers
+                    val resultWithQuestions = originalRequest.question.foldLeft(baseResult) { (dnsMessage, question) =>
+                      dnsMessage.withQuestion(question)
+                    }
+                    val resultWithSearchResult = resultWithQuestions.withAnswer(question.qname, CNameResource(result))
+                    val resultWithAnswers = answer.answer.foldLeft(resultWithSearchResult) { (dnsMessage, answer) =>
+                      dnsMessage.withAnswer(answer.name, answer.rdata, answer.ttl, answer.`class`)
+                    }
+                    resultWithAnswers.build
                 }
-                val resultWithSearchResult = searchResult.foldLeft(resultWithQuestions) { (dnsMessage, searchResult) =>
-                  dnsMessage.withAnswer(searchableQuestion.qname, CNameResource(searchResult))
-                }
-                val resultWithAnswers = response.answer.foldLeft(resultWithSearchResult) { (dnsMessage, answer) =>
-                  dnsMessage.withAnswer(answer.name, answer.rdata, answer.ttl, answer.`class`)
-                }
-                respond(resultWithAnswers.build(), remote)
-              case (Some(searchableQuestion), response) =>
-                searchActor ? searchableQuestion.qname.replace('.', ' ') onSuccess {
-                  case Some(result: String) =>
-                    requests.put(response.header.id, (remote, request, Some(result), true))
-                    ctx.writeAndFlush(DnsPacket(
-                      DnsMessage
-                        .id(response.header.id)
-                        .withQuestion(QuestionSection(result, searchableQuestion.qtype, searchableQuestion.qclass))
-                        .build(),
-                      fallbackDnsAddress))
-                  case _ => pass(request, remote)
-                }
-              case _ => pass(request, remote)
+              case _ => Future(answer)
             }
-          }
-      }
+          case answer: Message => Future(answer)
+        } pipeTo origin
     }
   }
 }

@@ -146,3 +146,24 @@ object DnsMessage extends DnsMessage(
     additional = Nil)) {
   def apply(msg: Message) = new DnsMessage(msg)
 }
+
+object QueryMessage {
+  def unapply(message: Message) = message.header.qr match {
+    case HeaderSection.qrQuery => Some(message)
+    case _ => None
+  }
+}
+
+object ResponseMessage {
+  def unapply(message: Message) = message.header.qr match {
+    case HeaderSection.qrResponse => Some(message)
+    case _ => None
+  }
+}
+
+object ErrorMessage {
+  def unapply(message: Message) = message.header.rcode match {
+    case HeaderSection.rcodeNoError => None
+    case _ => Some(message)
+  }
+}

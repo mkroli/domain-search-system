@@ -30,6 +30,11 @@ class MessageBuffer private (val buf: ByteBuffer, val domains: Map[String, Int])
 
   def flip() = buf.flip()
 
+  def flippedBuf() = {
+    buf.flip()
+    buf
+  }
+
   def remaining() = buf.remaining()
 
   def get() = buf.get()

@@ -23,14 +23,12 @@ object Boot extends App with Logging {
     ConfigurationComponent with
     DnsFrontendComponent with
     IndexComponent with
-    SearchComponent with
     HttpComponent with
     MetricsComponent
 
   applicationContext.actorSystem
   applicationContext.indexActor
-  applicationContext.searchActor
-  applicationContext.channel
+  applicationContext.dnsActor
   applicationContext.http
 
   logger.info("Booted")
