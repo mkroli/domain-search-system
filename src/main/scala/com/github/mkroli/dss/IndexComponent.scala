@@ -41,6 +41,7 @@ import org.apache.lucene.util.Version
 import akka.actor.Actor
 import akka.actor.FSM
 import akka.actor.Props
+import akka.actor.Stash
 
 trait IndexComponent {
   self: ConfigurationComponent with AkkaComponent =>
@@ -56,7 +57,7 @@ trait IndexComponent {
   case object Committed extends State
   case object Uncommitted extends State
 
-  class IndexActor extends Actor with FSM[State, Either[IndexWriter, (DirectoryReader, IndexSearcher)]] {
+  class IndexActor extends Actor with Stash with FSM[State, Either[IndexWriter, (DirectoryReader, IndexSearcher)]] {
     val analyzer = new StandardAnalyzer(Version.LUCENE_44)
     val directory = config.getString("index.filename") match {
       case fn if fn.isEmpty => new RAMDirectory
@@ -111,13 +112,10 @@ trait IndexComponent {
     startWith(Uncommitted, Left(new IndexWriter(directory, indexWriterConfig)))
 
     when(Committed) {
-      case Event(msg @ (AddToIndex(_, _) | RemoveFromIndex(_)), Right((indexReader, _))) =>
+      case Event((AddToIndex(_, _) | RemoveFromIndex(_)), Right((indexReader, _))) =>
         indexReader.close()
         val indexWriter = new IndexWriter(directory, indexWriterConfig)
-        msg match {
-          case AddToIndex(host, description) => addToIndex(indexWriter, host, description)
-          case RemoveFromIndex(host) => removeFromIndex(indexWriter, host)
-        }
+        stash
         goto(Uncommitted) using Left(indexWriter)
       case Event(SearchIndex(query), Right((_, indexSearcher))) =>
         sender ! search(indexSearcher, query)
@@ -138,12 +136,12 @@ trait IndexComponent {
         indexWriter.close()
         val indexReader = DirectoryReader.open(directory)
         val indexSearcher = new IndexSearcher(indexReader)
-        msg match {
-          case SearchIndex(query) => sender ! search(indexSearcher, query)
-          case GetAllDocuments(start, end) => sender ! getAllDocs(indexSearcher, start, end)
-          case _ =>
-        }
+        if (msg != StateTimeout) stash
         goto(Committed) using Right((indexReader, indexSearcher))
+    }
+
+    onTransition {
+      case _ => unstashAll
     }
   }
 }

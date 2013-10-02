@@ -15,8 +15,9 @@
  */
 package com.github.mkroli.dss
 
-import com.codahale.metrics.MetricRegistry
 import com.codahale.metrics.JmxReporter
+import com.codahale.metrics.MetricRegistry
+
 import nl.grons.metrics.scala.InstrumentedBuilder
 
 trait MetricsComponent {

@@ -27,7 +27,7 @@ object Build extends sbt.Build {
   lazy val projectSettings = Seq(
     name := "domain-search-system",
     organization := "com.github.mkroli",
-    scalaVersion := "2.10.2",
+    scalaVersion := "2.10.3",
     scalacOptions ++= Seq("-feature", "-unchecked", "-deprecation"))
 
   lazy val projectDependencies = Seq(
