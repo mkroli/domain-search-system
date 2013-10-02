@@ -42,7 +42,8 @@ trait DnsFrontendComponent {
   lazy val dnsActor = actorSystem.actorOf(Props(new DnsActor(listenPort, dnsHandlerActor, timeout)))
 
   class DnsHandlerActor extends Actor with Instrumented {
-    val requestsMetric = metrics.meter("requests")
+    val requestsMetric = metrics.meter("requestsMeter")
+    val overallLookupTimer = metrics.timer("overallLookupTimer")
 
     private object SearchableQuestion {
       def unapply(message: Message) = message.question.find {
@@ -57,6 +58,7 @@ trait DnsFrontendComponent {
     override def receive = {
       case originalRequest: Message =>
         requestsMetric.mark
+        val overallLookup = overallLookupTimer.timerContext
         val origin = sender
         dnsActor ? DnsPacket(originalRequest, fallbackDnsAddress) flatMap {
           case ErrorMessage(answer @ SearchableQuestion(question)) =>
@@ -82,7 +84,9 @@ trait DnsFrontendComponent {
               case _ => Future(answer)
             }
           case answer: Message => Future(answer)
-        } pipeTo origin
+        } pipeTo origin onSuccess {
+          case _ => overallLookup.stop
+        }
     }
   }
 }
