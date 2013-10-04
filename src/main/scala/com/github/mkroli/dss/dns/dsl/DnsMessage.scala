@@ -57,6 +57,9 @@ class DnsMessage private (msg: Message) {
     header = msg.header.copy(qdcount = msg.header.qdcount + 1),
     question = msg.question :+ question))
 
+  def withQuestionsFrom(message: Message) =
+    message.question.foldLeft(this)(_ withQuestion _)
+
   def withoutQuestions() = new DnsMessage(msg.copy(
     header = msg.header.copy(qdcount = 0),
     question = Nil))
@@ -80,6 +83,13 @@ class DnsMessage private (msg: Message) {
     new ResourceRecord(name, `type`, `class`, ttl, buf.remaining(), resource)
   }
 
+  private def withResourceRecordFrom(records: Seq[ResourceRecord],
+    f: (DnsMessage) => (String, Resource, Long, Int) => DnsMessage) = {
+    records.foldLeft(this) { (message, rr) =>
+      f(message)(rr.name, rr.rdata, rr.ttl, rr.`class`)
+    }
+  }
+
   def withAnswer[R <: Resource](
     name: String,
     resource: R,
@@ -89,6 +99,9 @@ class DnsMessage private (msg: Message) {
       header = msg.header.copy(ancount = msg.header.ancount + 1),
       answer = msg.answer :+ resourceRecord(name, resource, ttl, `class`)))
   }
+
+  def withAnswersFrom(message: Message) =
+    withResourceRecordFrom(message.answer, _.withAnswer)
 
   def withoutAnswers() = new DnsMessage(msg.copy(
     header = msg.header.copy(ancount = 0),
@@ -104,6 +117,9 @@ class DnsMessage private (msg: Message) {
       authority = msg.authority :+ resourceRecord(name, resource, ttl, `class`)))
   }
 
+  def withAuthorityFrom(message: Message) =
+    withResourceRecordFrom(message.authority, _.withAuthority)
+
   def withoutAuthority() = new DnsMessage(msg.copy(
     header = msg.header.copy(nscount = 0),
     authority = Nil))
@@ -117,6 +133,9 @@ class DnsMessage private (msg: Message) {
       header = msg.header.copy(arcount = msg.header.arcount + 1),
       additional = msg.additional :+ resourceRecord(name, resource, ttl, `class`)))
   }
+
+  def withAdditionalFrom(message: Message) =
+    withResourceRecordFrom(message.additional, _.withAdditional)
 
   def withoutAdditional() = new DnsMessage(msg.copy(
     header = msg.header.copy(arcount = 0),

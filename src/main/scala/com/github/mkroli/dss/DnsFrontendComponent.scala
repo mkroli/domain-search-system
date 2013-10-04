@@ -16,6 +16,9 @@
 package com.github.mkroli.dss
 
 import java.net.InetSocketAddress
+
+import scala.concurrent.Future
+
 import com.github.mkroli.dss.dns.Message
 import com.github.mkroli.dss.dns.akka.DnsActor
 import com.github.mkroli.dss.dns.akka.DnsPacket
@@ -24,11 +27,11 @@ import com.github.mkroli.dss.dns.dsl.ErrorMessage
 import com.github.mkroli.dss.dns.section.QuestionSection
 import com.github.mkroli.dss.dns.section.ResourceRecord
 import com.github.mkroli.dss.dns.section.resource.CNameResource
+
 import akka.actor.Actor
 import akka.actor.Props
 import akka.pattern.ask
 import akka.pattern.pipe
-import scala.concurrent.Future
 
 trait DnsFrontendComponent {
   self: AkkaComponent with IndexComponent with ConfigurationComponent with MetricsComponent =>
@@ -69,17 +72,13 @@ trait DnsFrontendComponent {
                   fallbackDnsAddress)
                 dnsActor ? lookup map {
                   case answer: Message =>
-                    val baseResult = DnsMessage(answer)
+                    DnsMessage(answer)
                       .withoutQuestions
                       .withoutAnswers
-                    val resultWithQuestions = originalRequest.question.foldLeft(baseResult) { (dnsMessage, question) =>
-                      dnsMessage.withQuestion(question)
-                    }
-                    val resultWithSearchResult = resultWithQuestions.withAnswer(question.qname, CNameResource(result))
-                    val resultWithAnswers = answer.answer.foldLeft(resultWithSearchResult) { (dnsMessage, answer) =>
-                      dnsMessage.withAnswer(answer.name, answer.rdata, answer.ttl, answer.`class`)
-                    }
-                    resultWithAnswers.build
+                      .withQuestionsFrom(originalRequest)
+                      .withAnswer(question.qname, CNameResource(result))
+                      .withAnswersFrom(answer)
+                      .build
                 }
               case _ => Future(answer)
             }
