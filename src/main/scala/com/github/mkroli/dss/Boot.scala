@@ -24,7 +24,8 @@ object Boot extends App with Logging {
     DnsFrontendComponent with
     IndexComponent with
     HttpComponent with
-    MetricsComponent
+    MetricsComponent with
+    AkkaMetricsComponent
 
   applicationContext.actorSystem
   applicationContext.indexActor

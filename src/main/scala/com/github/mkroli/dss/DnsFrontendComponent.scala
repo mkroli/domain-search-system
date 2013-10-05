@@ -34,20 +34,21 @@ import akka.pattern.ask
 import akka.pattern.pipe
 
 trait DnsFrontendComponent {
-  self: AkkaComponent with IndexComponent with ConfigurationComponent with MetricsComponent =>
+  self: AkkaComponent with IndexComponent with ConfigurationComponent with AkkaMetricsComponent =>
 
   lazy val listenPort: Int = config.getInt("server.bind.port")
   lazy val fallbackDnsAddress = new InetSocketAddress(
     config.getString("server.fallback.address"),
     config.getInt("server.fallback.port"))
 
-  lazy val dnsHandlerActor = actorSystem.actorOf(Props(new DnsHandlerActor))
+  lazy val dnsHandlerActor = actorSystem.actorOf(
+    Props(new MetricActor(
+      actorSystem.actorOf(Props(new DnsHandlerActor), "DnsHandlerActor"),
+      timerName = Some("timer"),
+      meterName = Some("meter"))))
   lazy val dnsActor = actorSystem.actorOf(Props(new DnsActor(listenPort, dnsHandlerActor, timeout)))
 
-  class DnsHandlerActor extends Actor with Instrumented {
-    val requestsMetric = metrics.meter("requestsMeter")
-    val overallLookupTimer = metrics.timer("overallLookupTimer")
-
+  class DnsHandlerActor extends Actor {
     private object SearchableQuestion {
       def unapply(message: Message) = message.question.find {
         case QuestionSection(_,
@@ -60,9 +61,6 @@ trait DnsFrontendComponent {
 
     override def receive = {
       case originalRequest: Message =>
-        requestsMetric.mark
-        val overallLookup = overallLookupTimer.timerContext
-        val origin = sender
         dnsActor ? DnsPacket(originalRequest, fallbackDnsAddress) flatMap {
           case ErrorMessage(answer @ SearchableQuestion(question)) =>
             indexActor ? SearchIndex(question.qname.replace('.', ' ')) flatMap {
@@ -83,9 +81,7 @@ trait DnsFrontendComponent {
               case _ => Future(answer)
             }
           case answer: Message => Future(answer)
-        } pipeTo origin onSuccess {
-          case _ => overallLookup.stop
-        }
+        } pipeTo sender
     }
   }
 }
