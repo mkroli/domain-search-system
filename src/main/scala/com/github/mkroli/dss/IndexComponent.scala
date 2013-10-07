@@ -58,13 +58,13 @@ trait IndexComponent {
   case object Uncommitted extends State
 
   class IndexActor extends Actor with Stash with FSM[State, Either[IndexWriter, (DirectoryReader, IndexSearcher)]] {
-    val analyzer = new StandardAnalyzer(Version.LUCENE_44)
+    val analyzer = new StandardAnalyzer(Version.LUCENE_45)
     val directory = config.getString("index.filename") match {
       case fn if fn.isEmpty => new RAMDirectory
       case fn => new MMapDirectory(new File(fn))
     }
-    val indexWriterConfig = new IndexWriterConfig(Version.LUCENE_44, analyzer)
-    val queryParser = new MultiFieldQueryParser(Version.LUCENE_44,
+    def indexWriterConfig = new IndexWriterConfig(Version.LUCENE_45, analyzer)
+    val queryParser = new MultiFieldQueryParser(Version.LUCENE_45,
       "text" :: "host" :: "domain" :: Nil toArray,
       analyzer,
       mapAsJavaMap(Map("text" -> 1.0f, "host" -> 0.75f, "domain" -> 0.5f)))

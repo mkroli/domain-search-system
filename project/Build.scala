@@ -33,14 +33,14 @@ object Build extends sbt.Build {
   lazy val projectDependencies = Seq(
     libraryDependencies ++= Seq(
       "com.google.guava" % "guava" % "15.0",
-      "com.google.code.findbugs" % "jsr305" % "2.0.1" % "provided",
+      "com.google.code.findbugs" % "jsr305" % "2.0.2" % "provided",
       "com.typesafe" % "config" % "1.0.2",
       "com.typesafe" %% "scalalogging-slf4j" % "1.0.1",
       "ch.qos.logback" % "logback-classic" % "1.0.13",
       "com.typesafe.akka" %% "akka-actor" % "2.2.1",
-      "org.apache.lucene" % "lucene-core" % "4.4.0",
-      "org.apache.lucene" % "lucene-analyzers-common" % "4.4.0",
-      "org.apache.lucene" % "lucene-queryparser" % "4.4.0",
+      "org.apache.lucene" % "lucene-core" % "4.5.0",
+      "org.apache.lucene" % "lucene-analyzers-common" % "4.5.0",
+      "org.apache.lucene" % "lucene-queryparser" % "4.5.0",
       "net.databinder" %% "unfiltered-netty" % "0.7.0",
       "net.databinder" %% "unfiltered-netty-server" % "0.7.0",
       "org.json4s" %% "json4s-native" % "3.2.5",
