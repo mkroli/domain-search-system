@@ -141,6 +141,10 @@ trait IndexComponent {
     }
 
     onTransition {
+      case _ -> Committed => log.info("committed")
+    }
+
+    onTransition {
       case _ => unstashAll
     }
   }
