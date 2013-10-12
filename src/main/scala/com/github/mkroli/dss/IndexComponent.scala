@@ -109,14 +109,20 @@ trait IndexComponent {
         .map(indexSearcher.doc)
     }
 
-    startWith(Uncommitted, Left(new IndexWriter(directory, indexWriterConfig)))
+    def uncommitted = Left(new IndexWriter(directory, indexWriterConfig))
+
+    def committed = {
+      val indexReader = DirectoryReader.open(directory)
+      Right(indexReader, new IndexSearcher(indexReader))
+    }
+
+    startWith(Uncommitted, uncommitted)
 
     when(Committed) {
       case Event((AddToIndex(_, _) | RemoveFromIndex(_)), Right((indexReader, _))) =>
-        indexReader.close()
-        val indexWriter = new IndexWriter(directory, indexWriterConfig)
         stash
-        goto(Uncommitted) using Left(indexWriter)
+        indexReader.close()
+        goto(Uncommitted) using uncommitted
       case Event(SearchIndex(query), Right((_, indexSearcher))) =>
         sender ! search(indexSearcher, query)
         stay
@@ -133,11 +139,9 @@ trait IndexComponent {
         removeFromIndex(indexWriter, host)
         stay
       case Event(msg @ (SearchIndex(_) | GetAllDocuments(_, _) | StateTimeout), Left(indexWriter)) =>
-        indexWriter.close()
-        val indexReader = DirectoryReader.open(directory)
-        val indexSearcher = new IndexSearcher(indexReader)
         if (msg != StateTimeout) stash
-        goto(Committed) using Right((indexReader, indexSearcher))
+        indexWriter.close()
+        goto(Committed) using committed
     }
 
     onTransition {
@@ -147,5 +151,7 @@ trait IndexComponent {
     onTransition {
       case _ => unstashAll
     }
+
+    initialize()
   }
 }
