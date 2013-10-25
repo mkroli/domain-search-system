@@ -30,6 +30,30 @@ bin/dss
 
 Remember that DNS binds to UDP port 53 which requires root-privileges.
 
+Debian Installation
+-------------------
+
+1. Create "/etc/apt/sources.list.d/mkroli.list":
+```
+deb http://content.wuala.com/contents/mkroli/public/debian/ mkroli/
+deb-src http://content.wuala.com/contents/mkroli/public/debian/ mkroli/
+```
+
+2. Add GPG public key to apt keyring:
+```bash
+wget https://content.wuala.com/contents/mkroli/public/debian/mkroli_public_key.asc -O - | apt-key add -
+```
+
+3. Update apt index:
+```bash
+apt-get update
+```
+
+4. Install the dss package:
+```bash
+apt-get install dss
+```
+
 Configuration
 -------------
 
