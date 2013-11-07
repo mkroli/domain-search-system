@@ -82,17 +82,19 @@ trait IndexComponent {
 
     def addToIndex(indexWriter: IndexWriter, host: String, description: String) {
       val doc = new Document
-      def addWithFuzzy(prefix: String, f: (String) => Field) =
-        Seq(prefix, prefix + "_fuzzy") map f foreach doc.add
+      def addWithFuzzy(prefix: String, content: String, store: Field.Store) = {
+        doc.add(new TextField(prefix, content, store))
+        doc.add(new TextField(s"${prefix}_fuzzy", content, Field.Store.NO))
+      }
       val (hostName, domainName) = host.split("""\.""").toList match {
         case hostName :: tail => (hostName, tail.mkString("."))
         case _ => ("", "")
       }
       removeFromIndex(indexWriter, host)
       doc.add(new StringField("id", host, Field.Store.YES))
-      addWithFuzzy("text", new TextField(_, description, Field.Store.YES))
-      if (includeHostname) addWithFuzzy("host", new TextField(_, hostName, Field.Store.NO))
-      if (includeDomain) addWithFuzzy("domain", new TextField(_, domainName, Field.Store.NO))
+      addWithFuzzy("text", description, Field.Store.YES)
+      if (includeHostname) addWithFuzzy("host", hostName, Field.Store.NO)
+      if (includeDomain) addWithFuzzy("domain", domainName, Field.Store.NO)
       indexWriter.addDocument(doc)
     }
 
