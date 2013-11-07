@@ -17,10 +17,10 @@ limitations under the License.
 angular.module('dss', ['ngResource'])
 
 window.DSSController = ($scope, $resource) ->
-  dss = $resource '/api/:domain', {},
-    get: (method: "GET", params: (domain: ''), isArray: true)
-    delete: (method: "DELETE")
-    save: (method: "PUT")
+  dss = $resource '/api/:ctx/:domain', {},
+    get: (method: "GET", params: (ctx: 'index', domain: ''), isArray: true)
+    delete: (method: "DELETE", params: (ctx: 'host'))
+    save: (method: "PUT", params: (ctx: 'host'))
 
   dss.get (data) ->
     d.state = true for d in data
