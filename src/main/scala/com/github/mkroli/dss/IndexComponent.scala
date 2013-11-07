@@ -21,7 +21,6 @@ import scala.collection.JavaConversions.mapAsJavaMap
 import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps
 
-import org.apache.lucene.analysis.standard.StandardAnalyzer
 import org.apache.lucene.document.Document
 import org.apache.lucene.document.Field
 import org.apache.lucene.document.StringField
@@ -37,6 +36,13 @@ import org.apache.lucene.search.TermQuery
 import org.apache.lucene.store.MMapDirectory
 import org.apache.lucene.store.RAMDirectory
 import org.apache.lucene.util.Version
+
+import com.github.mkroli.dss.index.DssAnalyzer
+import com.github.mkroli.dss.index.DssAnalyzer.filterChain
+import com.github.mkroli.dss.index.DssAnalyzer.lowercase
+import com.github.mkroli.dss.index.DssAnalyzer.ngram
+import com.github.mkroli.dss.index.DssAnalyzer.standard
+import com.github.mkroli.dss.index.DssAnalyzer.stopwords
 
 import akka.actor.Actor
 import akka.actor.FSM
@@ -58,30 +64,35 @@ trait IndexComponent {
   case object Uncommitted extends State
 
   class IndexActor extends Actor with Stash with FSM[State, Either[IndexWriter, (DirectoryReader, IndexSearcher)]] {
-    val analyzer = new StandardAnalyzer(Version.LUCENE_45)
+    val analyzer = DssAnalyzer(Version.LUCENE_45) {
+      case f if f.endsWith("_fuzzy") => filterChain(standard, lowercase, ngram)
+      case f => filterChain(standard, lowercase, stopwords)
+    }
     val directory = config.getString("index.filename") match {
       case fn if fn.isEmpty => new RAMDirectory
       case fn => new MMapDirectory(new File(fn))
     }
     def indexWriterConfig = new IndexWriterConfig(Version.LUCENE_45, analyzer)
     val queryParser = new MultiFieldQueryParser(Version.LUCENE_45,
-      "text" :: "host" :: "domain" :: Nil toArray,
+      List("text", "host", "domain") flatMap (s => List(s"${s}_fuzzy", s)) toArray,
       analyzer,
-      mapAsJavaMap(Map("text" -> 1.0f, "host" -> 0.75f, "domain" -> 0.5f)))
+      mapAsJavaMap(Map("text" -> 8f, "host" -> 4f, "domain" -> 2f)))
     val includeHostname = config.getBoolean("index.include.host")
     val includeDomain = config.getBoolean("index.include.domain")
 
     def addToIndex(indexWriter: IndexWriter, host: String, description: String) {
+      val doc = new Document
+      def addWithFuzzy(prefix: String, f: (String) => Field) =
+        Seq(prefix, prefix + "_fuzzy") map f foreach doc.add
       val (hostName, domainName) = host.split("""\.""").toList match {
         case hostName :: tail => (hostName, tail.mkString("."))
         case _ => ("", "")
       }
       removeFromIndex(indexWriter, host)
-      val doc = new Document
       doc.add(new StringField("id", host, Field.Store.YES))
-      doc.add(new TextField("text", description, Field.Store.YES))
-      if (includeHostname) doc.add(new TextField("host", hostName, Field.Store.NO))
-      if (includeDomain) doc.add(new TextField("domain", domainName, Field.Store.NO))
+      addWithFuzzy("text", new TextField(_, description, Field.Store.YES))
+      if (includeHostname) addWithFuzzy("host", new TextField(_, hostName, Field.Store.NO))
+      if (includeDomain) addWithFuzzy("domain", new TextField(_, domainName, Field.Store.NO))
       indexWriter.addDocument(doc)
     }
 
@@ -90,10 +101,7 @@ trait IndexComponent {
     }
 
     def search(indexSearcher: IndexSearcher, query: String) = {
-      val terms = query.split("""\s+""").toList
-      val p = terms.map(_ + "*") ++ terms.map(_ + "~") mkString (" ")
-      val q = queryParser.parse(p)
-
+      val q = queryParser.parse(query.replace('.', ' '))
       indexSearcher.search(q, 1).scoreDocs.toSeq.map { d =>
         indexSearcher.doc(d.doc).get("id")
       }.headOption
