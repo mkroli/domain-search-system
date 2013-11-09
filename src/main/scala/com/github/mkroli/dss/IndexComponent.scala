@@ -33,7 +33,7 @@ import org.apache.lucene.queryparser.classic.MultiFieldQueryParser
 import org.apache.lucene.search.IndexSearcher
 import org.apache.lucene.search.MatchAllDocsQuery
 import org.apache.lucene.search.TermQuery
-import org.apache.lucene.store.MMapDirectory
+import org.apache.lucene.store.FSDirectory
 import org.apache.lucene.store.RAMDirectory
 import org.apache.lucene.util.Version
 
@@ -70,7 +70,7 @@ trait IndexComponent {
     }
     val directory = config.getString("index.filename") match {
       case fn if fn.isEmpty => new RAMDirectory
-      case fn => new MMapDirectory(new File(fn))
+      case fn => FSDirectory.open(new File(fn))
     }
     def indexWriterConfig = new IndexWriterConfig(Version.LUCENE_45, analyzer)
     val queryParser = new MultiFieldQueryParser(Version.LUCENE_45,
