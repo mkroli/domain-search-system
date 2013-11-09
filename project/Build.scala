@@ -19,6 +19,7 @@ import sbtrelease._
 import sbtrelease.ReleasePlugin._
 import sbtrelease.ReleasePlugin.ReleaseKeys._
 import sbtrelease.ReleaseStateTransformations._
+import spray.revolver.RevolverPlugin._
 import xerial.sbt.Pack._
 import com.untyped.sbtjs.Plugin._
 import com.untyped.sbtless.Plugin._
@@ -108,5 +109,6 @@ object Build extends sbt.Build {
       jsSettings ++
       projectJsSettings ++
       lessSettings ++
-      projectLessSettings)
+      projectLessSettings ++
+      Revolver.settings)
 }

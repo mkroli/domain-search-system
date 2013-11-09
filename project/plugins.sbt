@@ -22,3 +22,5 @@ addSbtPlugin("com.github.gseitz" % "sbt-release" % "0.7")
 addSbtPlugin("com.untyped" %% "sbt-js" % "0.5")
 
 addSbtPlugin("com.untyped" %% "sbt-less" % "0.5")
+
+addSbtPlugin("io.spray" % "sbt-revolver" % "0.7.1")
