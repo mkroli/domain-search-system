@@ -15,6 +15,8 @@
  */
 package com.github.mkroli.dss
 
+import java.net.Inet4Address
+import java.net.InetAddress
 import java.net.InetSocketAddress
 
 import scala.concurrent.Future
@@ -26,6 +28,7 @@ import com.github.mkroli.dss.dns.dsl.DnsMessage
 import com.github.mkroli.dss.dns.dsl.ErrorMessage
 import com.github.mkroli.dss.dns.section.QuestionSection
 import com.github.mkroli.dss.dns.section.ResourceRecord
+import com.github.mkroli.dss.dns.section.resource.AResource
 import com.github.mkroli.dss.dns.section.resource.CNameResource
 
 import akka.actor.Actor
@@ -59,11 +62,34 @@ trait DnsFrontendComponent {
       }
     }
 
+    private object ByteX {
+      def unapply(s: String): Option[Byte] = try {
+        Some(s.toByte)
+      } catch {
+        case _: Throwable => None
+      }
+    }
+
+    private object IpAddress {
+      val ipv4Regex = """(\d+)\.(\d+)\.(\d+)\.(\d+)""".r
+
+      def unapply(s: String): Option[InetAddress] = s match {
+        case ipv4Regex(ByteX(a), ByteX(b), ByteX(c), ByteX(d)) =>
+          Some(InetAddress.getByAddress(Array(a, b, c, d)))
+        case _ => None
+      }
+    }
+
     override def receive = {
       case originalRequest: Message =>
         dnsActor ? DnsPacket(originalRequest, fallbackDnsAddress) flatMap {
           case ErrorMessage(answer @ SearchableQuestion(question)) =>
             indexActor ? SearchIndex(question.qname.replace('.', ' ')) flatMap {
+              case Some(IpAddress(addr: Inet4Address)) =>
+                Future(DnsMessage(answer)
+                  .withoutAnswers
+                  .withAnswer(question.qname, AResource(addr))
+                  .build)
               case Some(result: String) =>
                 val lookup = DnsPacket(
                   DnsMessage.withQuestion(question.copy(qname = result)).build,
