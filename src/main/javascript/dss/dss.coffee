@@ -51,7 +51,9 @@ window.DSSController = ($rootScope, $scope, $resource) ->
     if $scope.query == ''
       $rootScope.$apply -> d.searchResult = false for d in $scope.index
     else if $scope.query != lastQuery
-      dss.searchHost (domain: $scope.query), (r) ->
+      dss.searchHost((domain: $scope.query), (r) ->
         d.searchResult = d.id == r.id for d in $scope.index
+      , ->
+        d.searchResult = false for d in $scope.index)
     lastQuery = $scope.query
   , 500)
