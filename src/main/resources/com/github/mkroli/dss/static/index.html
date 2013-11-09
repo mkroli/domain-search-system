@@ -29,6 +29,13 @@ limitations under the License.
 			<h1 class="hidden-xs">DSS - Domain Search System</h1>
 		</div>
 
+		<div id="searchRow" class="row">
+			<div class="col-sm-12">
+				<input type="search" placeholder="Search..." class="form-control"
+					ng-model="query">
+			</div>
+		</div>
+
 		<div class="row hidden-xs">
 			<div class="col-xs-3">
 				<strong>Domainname</strong>
@@ -41,7 +48,8 @@ limitations under the License.
 			</div>
 		</div>
 
-		<div class="row" ng-repeat="domainname in index | orderBy:'id'">
+		<div class="row" ng-repeat="domainname in index | orderBy:'id'"
+			ng-class="{'has-success': domainname.searchResult}">
 			<div>
 				<div class="col-sm-3 top-margin">
 					<input type="text" disabled class="form-control"
@@ -58,8 +66,8 @@ limitations under the License.
 					</div>
 					<div class="btn-group btn-group-justified"
 						ng-show="domainname.state">
-						<a class="btn btn-primary" ng-click="save(domainname)">Save</a> <a
-							class="btn btn-danger" ng-click="delete(domainname)">Delete</a>
+						<a class="btn btn-primary" ng-click="saveHost(domainname)">Save</a>
+						<a class="btn btn-danger" ng-click="deleteHost(domainname)">Delete</a>
 					</div>
 				</div>
 			</div>
@@ -78,7 +86,7 @@ limitations under the License.
 				<div class="progress progress-striped active" ng-hide="new.state">
 					<div class="progress-bar" style="width: 100%"></div>
 				</div>
-				<a class="btn btn-block btn-primary" ng-click="save(new)"
+				<a class="btn btn-block btn-primary" ng-click="saveHost(new)"
 					ng-show="new.state">Save</a>
 			</div>
 		</div>

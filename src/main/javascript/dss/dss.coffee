@@ -16,19 +16,20 @@ limitations under the License.
 
 angular.module('dss', ['ngResource'])
 
-window.DSSController = ($scope, $resource) ->
+window.DSSController = ($rootScope, $scope, $resource) ->
   dss = $resource '/api/:ctx/:domain', {},
-    get: (method: "GET", params: (ctx: 'index', domain: ''), isArray: true)
-    delete: (method: "DELETE", params: (ctx: 'host'))
-    save: (method: "PUT", params: (ctx: 'host'))
+    getIndex: (method: "GET", params: (ctx: 'index', domain: ''), isArray: true)
+    deleteHost: (method: "DELETE", params: (ctx: 'host'))
+    saveHost: (method: "PUT", params: (ctx: 'host'))
+    searchHost: (method: "GET", params: (ctx: 'host'))
 
-  dss.get (data) ->
+  dss.getIndex (data) ->
     d.state = true for d in data
     $scope.index = data
 
-  $scope.save = (d) ->
+  $scope.saveHost = (d) ->
     d.state = false
-    dss.save((domain: d.id), d.text, ->
+    dss.saveHost((domain: d.id), d.text, ->
       $scope.index = $scope.index
         .filter((o) -> o.id != d.id)
         .concat((id: d.id, text: d.text, state: true))
@@ -37,9 +38,20 @@ window.DSSController = ($scope, $resource) ->
       d.text = ''
     , -> d.state = true)
 
-  $scope.delete = (d) ->
+  $scope.deleteHost = (d) ->
     d.state = false
-    dss.delete((domain: d.id), ->
+    dss.deleteHost((domain: d.id), ->
       $scope.index = $scope.index
         .filter((o) -> o.id != d.id)
     , -> d.state = true)
+
+  $scope.query = ''
+  lastQuery = $scope.query
+  setInterval(->
+    if $scope.query == ''
+      $rootScope.$apply -> d.searchResult = false for d in $scope.index
+    else if $scope.query != lastQuery
+      dss.searchHost (domain: $scope.query), (r) ->
+        d.searchResult = d.id == r.id for d in $scope.index
+    lastQuery = $scope.query
+  , 500)

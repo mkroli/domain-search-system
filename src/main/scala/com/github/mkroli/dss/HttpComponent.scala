@@ -23,7 +23,10 @@ import org.json4s.JArray
 import org.json4s.JField
 import org.json4s.JObject
 import org.json4s.JString
-import org.json4s.JsonDSL.WithBigDecimal._
+import org.json4s.JsonDSL.WithBigDecimal.map2jvalue
+import org.json4s.JsonDSL.WithBigDecimal.pair2jvalue
+import org.json4s.JsonDSL.WithBigDecimal.seq2jvalue
+import org.json4s.JsonDSL.WithBigDecimal.string2jvalue
 import org.json4s.jvalue2monadic
 import org.json4s.native.JsonMethods.compact
 import org.json4s.native.JsonMethods.parse
@@ -73,7 +76,9 @@ trait HttpComponent {
       req.respond(NoContent)
     case req @ GET(Path(Seg("api" :: "host" :: search :: Nil))) =>
       (indexActor ? SearchIndex(search)).mapTo[Option[String]].onSuccess {
-        case Some(result) => req.respond(ResponseString(result))
+        case Some(result) =>
+          val json = ("id" -> result)
+          req.respond(JsonContent ~> ResponseString(compact(render(json))))
         case None => req.respond(NotFound)
       }
   })
