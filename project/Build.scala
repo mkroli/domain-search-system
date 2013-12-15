@@ -40,13 +40,13 @@ object Build extends sbt.Build {
       "com.typesafe" %% "scalalogging-slf4j" % "1.0.1",
       "ch.qos.logback" % "logback-classic" % "1.0.13",
       "com.typesafe.akka" %% "akka-actor" % "2.2.3",
-      "org.apache.lucene" % "lucene-core" % "4.5.1",
-      "org.apache.lucene" % "lucene-analyzers-common" % "4.5.1",
-      "org.apache.lucene" % "lucene-queryparser" % "4.5.1",
-      "net.databinder" %% "unfiltered-netty" % "0.7.0",
-      "net.databinder" %% "unfiltered-netty-server" % "0.7.0",
-      "org.json4s" %% "json4s-native" % "3.2.5",
-      "nl.grons" %% "metrics-scala" % "3.0.3"))
+      "org.apache.lucene" % "lucene-core" % "4.6.0",
+      "org.apache.lucene" % "lucene-analyzers-common" % "4.6.0",
+      "org.apache.lucene" % "lucene-queryparser" % "4.6.0",
+      "net.databinder" %% "unfiltered-netty" % "0.7.1",
+      "net.databinder" %% "unfiltered-netty-server" % "0.7.1",
+      "org.json4s" %% "json4s-native" % "3.2.6",
+      "nl.grons" %% "metrics-scala" % "3.0.4"))
 
   lazy val projectWebResourceSettings = Seq(
     webResources ++= Map(
