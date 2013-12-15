@@ -23,6 +23,7 @@ import spray.revolver.RevolverPlugin._
 import xerial.sbt.Pack._
 import com.untyped.sbtjs.Plugin._
 import com.untyped.sbtless.Plugin._
+import com.github.mkroli.webresources.WebResources._
 
 object Build extends sbt.Build {
   lazy val projectSettings = Seq(
@@ -47,6 +48,11 @@ object Build extends sbt.Build {
       "org.json4s" %% "json4s-native" % "3.2.5",
       "nl.grons" %% "metrics-scala" % "3.0.3"))
 
+  lazy val projectWebResourceSettings = Seq(
+    webResources ++= Map(
+      "less/bootstrap.min.css" -> "http://netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css",
+      "less/bootstrap-theme.min.css" -> "http://netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap-theme.min.css"))
+
   lazy val projectClasspathSettings = Seq(
     unmanagedSourceDirectories in Compile <++= baseDirectory { base =>
       Seq(
@@ -64,7 +70,7 @@ object Build extends sbt.Build {
 
   lazy val projectJsSettings = Seq(
     JsKeys.variableRenamingPolicy in Compile := VariableRenamingPolicy.OFF,
-    compile in Compile <<= compile in Compile dependsOn (JsKeys.js in Compile),
+    packageBin in Compile <<= packageBin in Compile dependsOn (JsKeys.js in Compile),
     sourceDirectory in (Compile, JsKeys.js) <<= (sourceDirectory in Compile) { d =>
       d / "javascript"
     },
@@ -75,9 +81,10 @@ object Build extends sbt.Build {
     includeFilter in (Compile, JsKeys.js) := "*.jsm")
 
   lazy val projectLessSettings = Seq(
-    compile in Compile <<= compile in Compile dependsOn (LessKeys.less in Compile),
-    sourceDirectory in (Compile, LessKeys.less) <<= (sourceDirectory in Compile) { d =>
-      d / "less"
+    packageBin in Compile <<= packageBin in Compile dependsOn (LessKeys.less in Compile),
+    LessKeys.less in Compile <<= LessKeys.less in Compile dependsOn (resolveWebResources in Compile),
+    sourceDirectories in (Compile, LessKeys.less) <<= (sourceDirectory in Compile, webResourcesBase in Compile) { (d1, d2) =>
+      Seq(d1 / "less", d2 / "less")
     },
     resourceManaged in (Compile, LessKeys.less) <<= (resourceManaged in Compile) { d =>
       d / "com/github/mkroli/dss/static/css"
@@ -108,6 +115,8 @@ object Build extends sbt.Build {
       projectReleaseSettings ++
       jsSettings ++
       projectJsSettings ++
+      webResourceSettings ++
+      projectWebResourceSettings ++
       lessSettings ++
       projectLessSettings ++
       Revolver.settings)
