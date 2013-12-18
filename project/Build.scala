@@ -69,7 +69,6 @@ object Build extends sbt.Build {
     packExtraClasspath := Map("dss" -> Seq("${PROG_HOME}/etc")))
 
   lazy val projectJsSettings = Seq(
-    JsKeys.variableRenamingPolicy in Compile := VariableRenamingPolicy.OFF,
     packageBin in Compile <<= packageBin in Compile dependsOn (JsKeys.js in Compile),
     sourceDirectory in (Compile, JsKeys.js) <<= (sourceDirectory in Compile) { d =>
       d / "javascript"

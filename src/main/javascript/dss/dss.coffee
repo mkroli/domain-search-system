@@ -16,7 +16,7 @@ limitations under the License.
 
 angular.module('dss', ['ngResource'])
 
-window.DSSController = ($rootScope, $scope, $resource) ->
+angular.module('dss').controller 'DSSController', ['$rootScope', '$scope', '$resource', ($rootScope, $scope, $resource) ->
   dss = $resource '/api/:ctx/:domain', {},
     getIndex: (method: "GET", params: (ctx: 'index', domain: ''), isArray: true)
     deleteHost: (method: "DELETE", params: (ctx: 'host'))
@@ -57,3 +57,4 @@ window.DSSController = ($rootScope, $scope, $resource) ->
         d.searchResult = false for d in $scope.index)
     lastQuery = $scope.query
   , 500)
+]
