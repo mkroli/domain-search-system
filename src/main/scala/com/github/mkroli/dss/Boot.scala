@@ -30,7 +30,6 @@ object Boot extends App with Logging {
   applicationContext.actorSystem
   applicationContext.indexActor
   applicationContext.dnsActor
-  applicationContext.http
 
   logger.info("Booted")
 }

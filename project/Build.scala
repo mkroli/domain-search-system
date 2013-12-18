@@ -43,8 +43,8 @@ object Build extends sbt.Build {
       "org.apache.lucene" % "lucene-core" % "4.6.0",
       "org.apache.lucene" % "lucene-analyzers-common" % "4.6.0",
       "org.apache.lucene" % "lucene-queryparser" % "4.6.0",
-      "net.databinder" %% "unfiltered-netty" % "0.7.1",
-      "net.databinder" %% "unfiltered-netty-server" % "0.7.1",
+      "io.spray" % "spray-can" % "1.2.0",
+      "io.spray" % "spray-routing" % "1.2.0",
       "org.json4s" %% "json4s-native" % "3.2.6",
       "nl.grons" %% "metrics-scala" % "3.0.4"))
 
