@@ -22,8 +22,8 @@ import scala.collection.JavaConversions
 
 import com.github.mkroli.dss.dns.Message
 import com.github.mkroli.dss.dns.MessageBuffer
-import com.github.mkroli.dss.dns.dsl.QueryMessage
-import com.github.mkroli.dss.dns.dsl.ResponseMessage
+import com.github.mkroli.dss.dns.dsl.Query
+import com.github.mkroli.dss.dns.dsl.Response
 import com.google.common.cache.CacheBuilder
 
 import akka.actor.Actor
@@ -62,7 +62,7 @@ class DnsActor(port: Int, handler: ActorRef, implicit val timeout: Timeout) exte
   }
 
   def ready(socket: ActorRef): Receive = {
-    case DnsPacket(QueryMessage(message), destination) =>
+    case DnsPacket(Query(message), destination) =>
       val id = idLock.synchronized {
         nextFreeId = (nextFreeId + 1) % 0x10000
         nextFreeId
@@ -71,14 +71,14 @@ class DnsActor(port: Int, handler: ActorRef, implicit val timeout: Timeout) exte
       socket ! Udp.Send(
         ByteString(message.copy(header = message.header.copy(id = id))().flippedBuf),
         destination)
-    case Udp.Received(MessageInByteString(QueryMessage(message)), remote) =>
+    case Udp.Received(MessageInByteString(Query(message)), remote) =>
       handler ? message onSuccess {
-        case ResponseMessage(response) =>
+        case Response(response) =>
           socket ! Udp.Send(
             ByteString(response.copy(header = response.header.copy(id = message.header.id))().flippedBuf),
             remote)
       }
-    case Udp.Received(MessageInByteString(ResponseMessage(message)), remote) =>
+    case Udp.Received(MessageInByteString(Response(message)), remote) =>
       requests.get(message.header.id).foreach { sender =>
         sender ! message
       }

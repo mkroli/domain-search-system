@@ -21,15 +21,24 @@ import java.net.InetSocketAddress
 
 import scala.concurrent.Future
 
-import com.github.mkroli.dss.dns.Message
 import com.github.mkroli.dss.dns.akka.DnsActor
 import com.github.mkroli.dss.dns.akka.DnsPacket
-import com.github.mkroli.dss.dns.dsl.DnsMessage
-import com.github.mkroli.dss.dns.dsl.ErrorMessage
-import com.github.mkroli.dss.dns.section.QuestionSection
-import com.github.mkroli.dss.dns.section.ResourceRecord
-import com.github.mkroli.dss.dns.section.resource.AResource
-import com.github.mkroli.dss.dns.section.resource.CNameResource
+import com.github.mkroli.dss.dns.dsl.ARecord
+import com.github.mkroli.dss.dns.dsl.Answers
+import com.github.mkroli.dss.dns.dsl.CNameRecord
+import com.github.mkroli.dss.dns.dsl.ClassIN
+import com.github.mkroli.dss.dns.dsl.Dns
+import com.github.mkroli.dss.dns.dsl.NameError
+import com.github.mkroli.dss.dns.dsl.QName
+import com.github.mkroli.dss.dns.dsl.Query
+import com.github.mkroli.dss.dns.dsl.QuestionSectionModifierString
+import com.github.mkroli.dss.dns.dsl.Questions
+import com.github.mkroli.dss.dns.dsl.Response
+import com.github.mkroli.dss.dns.dsl.TypeA
+import com.github.mkroli.dss.dns.dsl.messageModifierToMessage
+import com.github.mkroli.dss.dns.dsl.resourceRecordModifierToResourceRecord
+import com.github.mkroli.dss.dns.dsl.stringToQuestionSection
+import com.github.mkroli.dss.dns.dsl.~
 
 import akka.actor.Actor
 import akka.actor.Props
@@ -52,16 +61,6 @@ trait DnsFrontendComponent {
   lazy val dnsActor = actorSystem.actorOf(Props(new DnsActor(listenPort, dnsHandlerActor, timeout)))
 
   class DnsHandlerActor extends Actor {
-    private object SearchableQuestion {
-      def unapply(message: Message) = message.question.find {
-        case QuestionSection(_,
-          ResourceRecord.typeA |
-          ResourceRecord.typeAAAA,
-          ResourceRecord.classIN) => true
-        case _ => false
-      }
-    }
-
     private object ByteX {
       def unapply(s: String): Option[Byte] = try {
         Some(s.toByte)
@@ -81,32 +80,27 @@ trait DnsFrontendComponent {
     }
 
     override def receive = {
-      case originalRequest: Message =>
+      case Query(originalRequest) ~ Questions(questions) =>
         dnsActor ? DnsPacket(originalRequest, fallbackDnsAddress) flatMap {
-          case ErrorMessage(answer @ SearchableQuestion(question)) =>
-            indexActor ? SearchIndex(question.qname.replace('.', ' ')) flatMap {
+          case Response(response) ~ NameError() ~ Questions(QName(qname) ~ TypeA() ~ ClassIN() :: Nil) =>
+            indexActor ? SearchIndex(qname.replace('.', ' ')) flatMap {
               case Some(IpAddress(addr: Inet4Address)) =>
-                Future(DnsMessage(answer)
-                  .withoutAnswers
-                  .withAnswer(question.qname, AResource(addr))
-                  .build)
+                Future(Dns(Response ~ Questions(questions: _*) ~ Answers(qname ~ ARecord(addr))))
               case Some(result: String) =>
                 val lookup = DnsPacket(
-                  DnsMessage.withQuestion(question.copy(qname = result)).build,
+                  Query ~ Questions(result),
                   fallbackDnsAddress)
                 dnsActor ? lookup map {
-                  case answer: Message =>
-                    DnsMessage(answer)
-                      .withoutQuestions
-                      .withoutAnswers
-                      .withQuestionsFrom(originalRequest)
-                      .withAnswer(question.qname, CNameResource(result))
-                      .withAnswersFrom(answer)
-                      .build
+                  case Response() ~ Answers(answers) =>
+                    Dns(Response ~
+                      Questions(questions: _*) ~
+                      Answers(qname ~ CNameRecord(result)) ~
+                      Answers(answers: _*))
+                  case _ => response
                 }
-              case _ => Future(answer)
+              case _ => Future(response)
             }
-          case answer: Message => Future(answer)
+          case Response(response) => Future(response)
         } pipeTo sender
     }
   }
