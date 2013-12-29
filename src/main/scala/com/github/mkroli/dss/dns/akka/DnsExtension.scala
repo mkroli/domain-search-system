@@ -19,6 +19,8 @@ import java.net.InetSocketAddress
 import java.util.concurrent.TimeUnit
 
 import scala.collection.JavaConversions
+import scala.collection.mutable.Map
+import scala.concurrent.duration.DurationInt
 
 import com.github.mkroli.dss.dns.Message
 import com.github.mkroli.dss.dns.MessageBuffer
@@ -28,29 +30,51 @@ import com.google.common.cache.CacheBuilder
 
 import akka.actor.Actor
 import akka.actor.ActorRef
+import akka.actor.ExtendedActorSystem
+import akka.actor.ExtensionId
+import akka.actor.ExtensionIdProvider
+import akka.actor.Props
 import akka.io.IO
+import akka.io.IO.Extension
 import akka.io.Udp
 import akka.pattern.ask
 import akka.util.ByteString
 import akka.util.Timeout
+import akka.util.Timeout.durationToTimeout
 
-case class DnsPacket(message: Message, destination: InetSocketAddress)
+class DnsExtension(system: ExtendedActorSystem) extends Extension {
+  override val manager = system.actorOf(Props[DnsExtensionActor])
+}
 
-class DnsActor(port: Int, handler: ActorRef, implicit val timeout: Timeout) extends Actor {
+object Dns extends ExtensionId[DnsExtension] with ExtensionIdProvider {
+  override def createExtension(system: ExtendedActorSystem) = new DnsExtension(system)
+
+  override def lookup = Dns
+
+  case class Bind(handler: ActorRef, port: Int, implicit val timeout: Timeout = 5 seconds)
+
+  case class DnsPacket(message: Message, destination: InetSocketAddress)
+}
+
+class DnsExtensionActor extends Actor {
   import context.system
   import context.dispatcher
 
   val idLock = new AnyRef
   @volatile var nextFreeId = 0
 
-  val requests = JavaConversions.mapAsScalaMap(CacheBuilder.newBuilder()
-    .expireAfterWrite(timeout.duration.toMillis, TimeUnit.MILLISECONDS)
-    .build[Integer, ActorRef]()
-    .asMap())
-  IO(Udp) ! Udp.Bind(self, new InetSocketAddress(port))
-
   override def receive = {
-    case Udp.Bound(_) => context.become(ready(sender))
+    case Dns.Bind(handler, port, timeout) =>
+      IO(Udp) ! Udp.Bind(self, new InetSocketAddress(port))
+      context.become(binding(handler)(timeout))
+  }
+
+  def binding(handler: ActorRef)(implicit timeout: Timeout): Receive = {
+    case Udp.Bound(_) =>
+      context.become(ready(sender, handler, JavaConversions.mapAsScalaMap(CacheBuilder.newBuilder()
+        .expireAfterWrite(5, TimeUnit.SECONDS)
+        .build[Integer, ActorRef]()
+        .asMap())))
   }
 
   object MessageInByteString {
@@ -61,8 +85,8 @@ class DnsActor(port: Int, handler: ActorRef, implicit val timeout: Timeout) exte
     }
   }
 
-  def ready(socket: ActorRef): Receive = {
-    case DnsPacket(Query(message), destination) =>
+  def ready(socket: ActorRef, handler: ActorRef, requests: Map[Integer, ActorRef])(implicit timeout: Timeout): Receive = {
+    case Dns.DnsPacket(Query(message), destination) =>
       val id = idLock.synchronized {
         nextFreeId = (nextFreeId + 1) % 0x10000
         nextFreeId

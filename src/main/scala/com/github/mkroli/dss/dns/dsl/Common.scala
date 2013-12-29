@@ -16,30 +16,8 @@
 package com.github.mkroli.dss.dns.dsl
 
 import com.github.mkroli.dss.dns.Message
-import com.github.mkroli.dss.dns.section.HeaderSection
 import com.github.mkroli.dss.dns.section.QuestionSection
 import com.github.mkroli.dss.dns.section.ResourceRecord
-
-object Dns {
-  def apply(mm: MessageModifier) = mm(new Message(
-    header = new HeaderSection(
-      id = 0,
-      qr = HeaderSection.qrQuery,
-      opcode = HeaderSection.opcodeStandardQuery,
-      aa = false,
-      tc = false,
-      rd = true,
-      ra = false,
-      rcode = HeaderSection.rcodeNoError,
-      qdcount = 0,
-      ancount = 0,
-      nscount = 0,
-      arcount = 0),
-    question = Nil,
-    answer = Nil,
-    authority = Nil,
-    additional = Nil))
-}
 
 object ~ {
   def unapply[T](t: T): Option[(T, T)] = Some(t, t)

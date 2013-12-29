@@ -20,6 +20,7 @@ import scala.language.implicitConversions
 import com.github.mkroli.dss.dns.dsl.MessageModifier
 import com.github.mkroli.dss.dns.dsl.QuestionSectionModifier
 import com.github.mkroli.dss.dns.dsl.ResourceRecordModifier
+import com.github.mkroli.dss.dns.section.HeaderSection
 import com.github.mkroli.dss.dns.section.QuestionSection
 import com.github.mkroli.dss.dns.section.Resource
 import com.github.mkroli.dss.dns.section.ResourceRecord
@@ -28,6 +29,28 @@ import com.github.mkroli.dss.dns.section.resource.UnknownResource
 package object dsl {
   implicit def boolean2UnitOption(b: Boolean) = if (b) Some() else None
 
+  private[dsl] class PlainMessage(qr: Boolean) extends Message(header = new HeaderSection(
+    id = 0,
+    qr = qr,
+    opcode = HeaderSection.opcodeStandardQuery,
+    aa = false,
+    tc = false,
+    rd = true,
+    ra = false,
+    rcode = HeaderSection.rcodeNoError,
+    qdcount = 0,
+    ancount = 0,
+    nscount = 0,
+    arcount = 0),
+    question = Nil,
+    answer = Nil,
+    authority = Nil,
+    additional = Nil)
+
+  implicit class ComposableMessage(val msg: Message) extends Message(msg.header, msg.question, msg.answer, msg.authority, msg.additional) {
+    def ~(mm: MessageModifier) = new ComposableMessage(mm(msg))
+  }
+
   def resourceRecordModifier(`type`: Int, resource: Resource) = new ResourceRecordModifier {
     val buf = resource(MessageBuffer())
     buf.flip()
@@ -35,8 +58,6 @@ package object dsl {
     override def apply(rr: ResourceRecord) =
       rr.copy(`type` = `type`, rdlength = buf.remaining, rdata = resource)
   }
-
-  implicit def messageModifierToMessage(mm: MessageModifier) = Dns(mm)
 
   implicit def questionSectionModifierToQuestionSection(qsm: QuestionSectionModifier): QuestionSection =
     qsm(QuestionSection("", ResourceRecord.typeA, ResourceRecord.classIN))

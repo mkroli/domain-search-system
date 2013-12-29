@@ -18,16 +18,13 @@ package com.github.mkroli.dss
 import java.net.Inet4Address
 import java.net.InetAddress
 import java.net.InetSocketAddress
-
 import scala.concurrent.Future
-
-import com.github.mkroli.dss.dns.akka.DnsActor
-import com.github.mkroli.dss.dns.akka.DnsPacket
+import com.github.mkroli.dss.dns.akka.Dns
 import com.github.mkroli.dss.dns.dsl.ARecord
 import com.github.mkroli.dss.dns.dsl.Answers
 import com.github.mkroli.dss.dns.dsl.CNameRecord
 import com.github.mkroli.dss.dns.dsl.ClassIN
-import com.github.mkroli.dss.dns.dsl.Dns
+import com.github.mkroli.dss.dns.dsl.ComposableMessage
 import com.github.mkroli.dss.dns.dsl.NameError
 import com.github.mkroli.dss.dns.dsl.QName
 import com.github.mkroli.dss.dns.dsl.Query
@@ -35,15 +32,15 @@ import com.github.mkroli.dss.dns.dsl.QuestionSectionModifierString
 import com.github.mkroli.dss.dns.dsl.Questions
 import com.github.mkroli.dss.dns.dsl.Response
 import com.github.mkroli.dss.dns.dsl.TypeA
-import com.github.mkroli.dss.dns.dsl.messageModifierToMessage
 import com.github.mkroli.dss.dns.dsl.resourceRecordModifierToResourceRecord
 import com.github.mkroli.dss.dns.dsl.stringToQuestionSection
 import com.github.mkroli.dss.dns.dsl.~
-
 import akka.actor.Actor
 import akka.actor.Props
+import akka.io.IO
 import akka.pattern.ask
 import akka.pattern.pipe
+import scala.util.Try
 
 trait DnsFrontendComponent {
   self: AkkaComponent with IndexComponent with ConfigurationComponent with AkkaMetricsComponent =>
@@ -58,15 +55,14 @@ trait DnsFrontendComponent {
       actorSystem.actorOf(Props(new DnsHandlerActor), "DnsHandlerActor"),
       timerName = Some("timer"),
       meterName = Some("meter"))))
-  lazy val dnsActor = actorSystem.actorOf(Props(new DnsActor(listenPort, dnsHandlerActor, timeout)))
+
+  IO(Dns)(actorSystem) ! Dns.Bind(dnsHandlerActor, listenPort, timeout)
 
   class DnsHandlerActor extends Actor {
+    lazy val dnsActor = IO(Dns)(actorSystem)
+
     private object ByteX {
-      def unapply(s: String): Option[Byte] = try {
-        Some(s.toByte)
-      } catch {
-        case _: Throwable => None
-      }
+      def unapply(s: String) = Try(s.toByte).toOption
     }
 
     private object IpAddress {
@@ -81,21 +77,21 @@ trait DnsFrontendComponent {
 
     override def receive = {
       case Query(originalRequest) ~ Questions(questions) =>
-        dnsActor ? DnsPacket(originalRequest, fallbackDnsAddress) flatMap {
+        dnsActor ? Dns.DnsPacket(originalRequest, fallbackDnsAddress) flatMap {
           case Response(response) ~ NameError() ~ Questions(QName(qname) ~ TypeA() ~ ClassIN() :: Nil) =>
             indexActor ? SearchIndex(qname.replace('.', ' ')) flatMap {
               case Some(IpAddress(addr: Inet4Address)) =>
-                Future(Dns(Response ~ Questions(questions: _*) ~ Answers(qname ~ ARecord(addr))))
+                Future(Response ~ Questions(questions: _*) ~ Answers(qname ~ ARecord(addr)))
               case Some(result: String) =>
-                val lookup = DnsPacket(
+                val lookup = Dns.DnsPacket(
                   Query ~ Questions(result),
                   fallbackDnsAddress)
                 dnsActor ? lookup map {
                   case Response() ~ Answers(answers) =>
-                    Dns(Response ~
+                    Response ~
                       Questions(questions: _*) ~
                       Answers(qname ~ CNameRecord(result)) ~
-                      Answers(answers: _*))
+                      Answers(answers: _*)
                   case _ => response
                 }
               case _ => Future(response)

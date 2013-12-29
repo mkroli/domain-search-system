@@ -21,15 +21,11 @@ object Boot extends App with Logging {
   val applicationContext = new AnyRef with
     AkkaComponent with
     ConfigurationComponent with
-    DnsFrontendComponent with
-    IndexComponent with
-    HttpComponent with
     MetricsComponent with
-    AkkaMetricsComponent
-
-  applicationContext.actorSystem
-  applicationContext.indexActor
-  applicationContext.dnsActor
+    AkkaMetricsComponent with
+    IndexComponent with
+    DnsFrontendComponent with
+    HttpComponent
 
   logger.info("Booted")
 }

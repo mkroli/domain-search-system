@@ -26,14 +26,12 @@ object Id {
   def unapply(msg: Message): Option[Int] = Some(msg.header.id)
 }
 
-private[dsl] abstract class DnsQr(qr: Boolean) extends MessageModifier {
-  override def apply(msg: Message) = msg.copy(msg.header.copy(qr = qr))
-
-  def unapply(msg: Message) = if (msg.header.qr == qr) Some(msg) else None
+private[dsl] trait DnsQr { self: Message =>
+  def unapply(msg: Message) = if (msg.header.qr == self.header.qr) Some(msg) else None
 }
 
-object Query extends DnsQr(false)
-object Response extends DnsQr(true)
+object Query extends PlainMessage(false) with DnsQr
+object Response extends PlainMessage(true) with DnsQr
 
 private[dsl] abstract class DnsFlag(set: HeaderSection => HeaderSection, get: (HeaderSection) => Boolean) extends MessageModifier {
   override def apply(msg: Message) = msg.copy(header = set(msg.header))
