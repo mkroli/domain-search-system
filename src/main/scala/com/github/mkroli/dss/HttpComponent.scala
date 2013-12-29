@@ -40,7 +40,7 @@ import spray.routing.HttpServiceActor
 trait HttpComponent {
   self: ConfigurationComponent with AkkaComponent with IndexComponent =>
 
-  IO(Http)(actorSystem) ! Http.Bind(
+  IO(Http)(actorSystem) ? Http.Bind(
     actorSystem.actorOf(Props(new DssHttpServiceActor)),
     "localhost",
     port = config.getInt("http.port"))
