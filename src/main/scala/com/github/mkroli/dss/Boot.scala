@@ -27,5 +27,7 @@ object Boot extends App with Logging {
     DnsFrontendComponent with
     HttpComponent
 
+  applicationContext.indexActor
+
   logger.info("Booted")
 }
