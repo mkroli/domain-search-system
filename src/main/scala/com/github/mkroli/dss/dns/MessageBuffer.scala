@@ -28,11 +28,9 @@ class MessageBuffer private (val buf: ByteBuffer, val domains: Map[String, Int])
 
   def put(b: Byte) = new MessageBuffer(buf.put(b), domains)
 
-  def flip() = buf.flip()
-
-  def flippedBuf() = {
+  def flipped() = {
     buf.flip()
-    buf
+    this
   }
 
   def remaining() = buf.remaining()

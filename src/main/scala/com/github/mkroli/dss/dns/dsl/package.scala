@@ -52,8 +52,7 @@ package object dsl {
   }
 
   def resourceRecordModifier(`type`: Int, resource: Resource) = new ResourceRecordModifier {
-    val buf = resource(MessageBuffer())
-    buf.flip()
+    val buf = resource(MessageBuffer()).flipped
 
     override def apply(rr: ResourceRecord) =
       rr.copy(`type` = `type`, rdlength = buf.remaining, rdata = resource)

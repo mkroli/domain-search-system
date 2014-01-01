@@ -93,13 +93,13 @@ class DnsExtensionActor extends Actor {
       }
       requests.put(id, sender)
       socket ! Udp.Send(
-        ByteString(message.copy(header = message.header.copy(id = id))().flippedBuf),
+        ByteString(message.copy(header = message.header.copy(id = id))().flipped.buf),
         destination)
     case Udp.Received(MessageInByteString(Query(message)), remote) =>
       handler ? message onSuccess {
         case Response(response) =>
           socket ! Udp.Send(
-            ByteString(response.copy(header = response.header.copy(id = message.header.id))().flippedBuf),
+            ByteString(response.copy(header = response.header.copy(id = message.header.id))().flipped.buf),
             remote)
       }
     case Udp.Received(MessageInByteString(Response(message)), remote) =>
