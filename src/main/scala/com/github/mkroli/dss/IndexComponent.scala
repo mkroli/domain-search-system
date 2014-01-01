@@ -49,15 +49,15 @@ import akka.actor.FSM
 import akka.actor.Props
 import akka.actor.Stash
 
+case class IndexItem(id: String, text: String)
+case class RemoveFromIndex(id: String)
+case class SearchIndex(query: String)
+case class GetAllDocuments(start: Int, end: Int)
+
 trait IndexComponent {
   self: ConfigurationComponent with AkkaComponent =>
 
   lazy val indexActor = actorSystem.actorOf(Props(new IndexActor))
-
-  case class AddToIndex(host: String, description: String)
-  case class RemoveFromIndex(host: String)
-  case class SearchIndex(query: String)
-  case class GetAllDocuments(start: Int, end: Int)
 
   sealed abstract class State
   case object Committed extends State
@@ -117,6 +117,7 @@ trait IndexComponent {
         .drop(start)
         .map(_.doc)
         .map(indexSearcher.doc)
+        .map(doc => IndexItem(doc.get("id"), doc.get("text")))
     }
 
     def uncommitted = Left(new IndexWriter(directory, indexWriterConfig))
@@ -129,7 +130,7 @@ trait IndexComponent {
     startWith(Uncommitted, uncommitted)
 
     when(Committed) {
-      case Event((AddToIndex(_, _) | RemoveFromIndex(_)), Right((indexReader, _))) =>
+      case Event((IndexItem(_, _) | RemoveFromIndex(_)), Right((indexReader, _))) =>
         stash
         indexReader.close()
         goto(Uncommitted) using uncommitted
@@ -142,11 +143,11 @@ trait IndexComponent {
     }
 
     when(Uncommitted, stateTimeout = 1 second) {
-      case Event(AddToIndex(host, description), Left(indexWriter)) =>
-        addToIndex(indexWriter, host, description)
+      case Event(IndexItem(id, text), Left(indexWriter)) =>
+        addToIndex(indexWriter, id, text)
         stay
-      case Event(RemoveFromIndex(host), Left(indexWriter)) =>
-        removeFromIndex(indexWriter, host)
+      case Event(RemoveFromIndex(id), Left(indexWriter)) =>
+        removeFromIndex(indexWriter, id)
         stay
       case Event(msg @ (SearchIndex(_) | GetAllDocuments(_, _) | StateTimeout), Left(indexWriter)) =>
         if (msg != StateTimeout) stash

@@ -15,26 +15,17 @@
  */
 package com.github.mkroli.dss
 
-import scala.collection.JavaConversions.asScalaBuffer
-
-import org.apache.lucene.document.Document
-import org.json4s.JArray
-import org.json4s.JField
+import org.json4s.DefaultFormats
 import org.json4s.JObject
 import org.json4s.JString
-import org.json4s.JsonDSL.WithBigDecimal.map2jvalue
-import org.json4s.JsonDSL.WithBigDecimal.pair2jvalue
-import org.json4s.JsonDSL.WithBigDecimal.seq2jvalue
-import org.json4s.JsonDSL.WithBigDecimal.string2jvalue
-import org.json4s.native.JsonMethods.compact
-import org.json4s.native.JsonMethods.parse
-import org.json4s.native.JsonMethods.render
 
 import akka.actor.Props
 import akka.io.IO
 import akka.pattern.ask
 import spray.can.Http
 import spray.http.StatusCodes
+import spray.httpx.Json4sSupport
+import spray.httpx.unmarshalling.BasicUnmarshallers
 import spray.routing.HttpServiceActor
 
 trait HttpComponent {
@@ -45,18 +36,20 @@ trait HttpComponent {
     "localhost",
     port = config.getInt("http.port"))
 
-  class DssHttpServiceActor extends HttpServiceActor {
+  class DssHttpServiceActor extends HttpServiceActor with BasicUnmarshallers with Json4sSupport {
+    override implicit def json4sFormats = DefaultFormats
+
     lazy val hostRoute = path("api" / "host" / Segment) { s =>
       get {
         complete {
           (indexActor ? SearchIndex(s)).mapTo[Option[String]].map(_.map { host =>
-            compact(render("id" -> host))
+            JObject("id" -> JString(host))
           })
         }
       } ~ put {
-        entity(as[String]) { description =>
+        entity(as[String]) { text =>
           complete {
-            indexActor ! AddToIndex(s, description)
+            indexActor ! IndexItem(s, text)
             StatusCodes.NoContent
           }
         }
@@ -71,40 +64,23 @@ trait HttpComponent {
     lazy val indexRoute = path("api" / "index") {
       get {
         complete {
-          (indexActor ? GetAllDocuments(0, 65535)).mapTo[Seq[Document]].map { docs =>
-            compact(render(docs.map { doc =>
-              doc.getFields().toList.map { field =>
-                field.name() -> field.stringValue()
-              }.toMap
-            }))
-          }
+          (indexActor ? GetAllDocuments(0, 65535)).mapTo[Seq[IndexItem]]
         }
       } ~ post {
-        entity(as[String]) { index =>
+        entity(as[List[IndexItem]]) { index =>
           complete {
-            try {
-              for {
-                JArray(items) <- parse(index)
-                JObject(item) <- items
-                JField("id", JString(id)) <- item
-                JField("text", JString(text)) <- item
-              } {
-                indexActor ! AddToIndex(id, text)
-              }
-              StatusCodes.NoContent
-            } catch {
-              case _: Throwable => StatusCodes.BadRequest
-            }
+            index.foreach(indexActor ! _)
+            StatusCodes.NoContent
           }
         }
       } ~ delete {
         complete {
-          (indexActor ? GetAllDocuments(0, 65535)).mapTo[Seq[Document]].map { docs =>
+          (indexActor ? GetAllDocuments(0, 65535)).mapTo[Seq[IndexItem]].foreach { docs =>
             docs.foreach { doc =>
-              indexActor ! RemoveFromIndex(doc.get("id"))
+              indexActor ! RemoveFromIndex(doc.id)
             }
-            StatusCodes.NoContent
           }
+          StatusCodes.NoContent
         }
       }
     }
