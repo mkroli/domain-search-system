@@ -31,6 +31,14 @@ case class HeaderSection(
   ancount: Int,
   nscount: Int,
   arcount: Int) extends MessageBufferEncoder {
+  require(id >= 0 && id < (1 << 16))
+  require(opcode >= 0 && opcode < (1 << 4))
+  require(rcode >= 0 && rcode < (1 << 4))
+  require(qdcount >= 0 && qdcount < (1 << 16))
+  require(ancount >= 0 && ancount < (1 << 16))
+  require(nscount >= 0 && nscount < (1 << 16))
+  require(arcount >= 0 && arcount < (1 << 16))
+
   def apply(buf: MessageBuffer) = {
     val tmpQr = if (qr) 1 << 15 else 0
     val tmpOpcode = (opcode & 15) << 11

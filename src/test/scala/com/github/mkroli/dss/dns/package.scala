@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Michael Krolikowski
+ * Copyright 2014 Michael Krolikowski
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,19 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.mkroli.dss.dns.section.resource
+package com.github.mkroli.dss
 
-import com.github.mkroli.dss.dns.MessageBuffer
-import com.github.mkroli.dss.dns.section.Resource
+import scala.language.postfixOps
 
-case class MXResource(preference: Int, exchange: String) extends Resource {
-  require(preference >= 0 && preference < (1 << 16))
+package object dns {
+  def maxLong(bits: Int) = BigInt(2).pow(bits) - 1 toLong
 
-  def apply(buf: MessageBuffer) =
-    buf.putUnsignedInt(2, preference).putDomainName(exchange)
-}
+  def maxInt(bits: Int) = maxLong(bits).toInt
 
-object MXResource {
-  def apply(buf: MessageBuffer) =
-    new MXResource(buf.getUnsignedInt(2), buf.getDomainName)
+  def bytes(s: String) = s.filter(' ' !=).sliding(2, 2).map(BigInt(_, 16).toByte).toList
 }

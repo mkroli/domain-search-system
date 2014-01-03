@@ -30,8 +30,11 @@ case class ResourceRecord(
   `type`: Int,
   `class`: Int,
   ttl: Long,
-  rdlength: Int,
   rdata: Resource) extends MessageBufferEncoder {
+  require(`type` >= 0 && `type` < (1 << 16))
+  require(`class` >= 0 && `class` < (1 << 16))
+  require(ttl >= 0 && ttl < (1L << 32))
+
   def apply(buf: MessageBuffer) = {
     buf
       .putDomainName(name)
@@ -86,6 +89,6 @@ object ResourceRecord {
       case 15 => MXResource(buf)
       case _ => UnknownResource(buf, rdlength, `type`)
     }
-    new ResourceRecord(name, `type`, `class`, ttl, rdlength, rdata)
+    new ResourceRecord(name, `type`, `class`, ttl, rdata)
   }
 }

@@ -26,6 +26,12 @@ case class SOAResource(
   retry: Long,
   expire: Long,
   minimum: Long) extends Resource {
+  require(serial >= 0 && serial < (1L << 32))
+  require(refresh >= 0 && refresh < (1L << 32))
+  require(retry >= 0 && retry < (1L << 32))
+  require(expire >= 0 && expire < (1L << 32))
+  require(minimum >= 0 && minimum < (1L << 32))
+
   def apply(buf: MessageBuffer) = buf
     .putDomainName(mname)
     .putDomainName(rname)

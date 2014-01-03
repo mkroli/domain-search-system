@@ -46,13 +46,4 @@ object Message {
       (1 to header.nscount).map(_ => ResourceRecord(bytes)),
       (1 to header.arcount).map(_ => ResourceRecord(bytes)))
   }
-
-  def unapply(bytes: MessageBuffer): Option[(HeaderSection, Seq[QuestionSection], Seq[ResourceRecord], Seq[ResourceRecord], Seq[ResourceRecord])] = {
-    try {
-      val message = Message(bytes)
-      Some(message.header, message.question, message.answer, message.authority, message.additional)
-    } catch {
-      case t: Throwable => None
-    }
-  }
 }

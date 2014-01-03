@@ -55,7 +55,7 @@ package object dsl {
     val buf = resource(MessageBuffer()).flipped
 
     override def apply(rr: ResourceRecord) =
-      rr.copy(`type` = `type`, rdlength = buf.remaining, rdata = resource)
+      rr.copy(`type` = `type`, rdata = resource)
   }
 
   implicit def questionSectionModifierToQuestionSection(qsm: QuestionSectionModifier): QuestionSection =
@@ -76,7 +76,6 @@ package object dsl {
       ResourceRecord.typeNULL,
       ResourceRecord.classIN,
       3600,
-      0,
       UnknownResource(Nil, ResourceRecord.typeNULL)))
   }
 }

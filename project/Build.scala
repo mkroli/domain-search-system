@@ -46,7 +46,8 @@ object Build extends sbt.Build {
       "io.spray" % "spray-can" % "1.2.0",
       "io.spray" % "spray-routing" % "1.2.0",
       "org.json4s" %% "json4s-native" % "3.2.6",
-      "nl.grons" %% "metrics-scala" % "3.0.4"))
+      "nl.grons" %% "metrics-scala" % "3.0.4",
+      "org.scalatest" %% "scalatest" % "2.0" % "test"))
 
   lazy val projectWebResourceSettings = Seq(
     webResources ++= Map(

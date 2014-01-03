@@ -104,23 +104,23 @@ class MessageBuffer private (val buf: ByteBuffer, val domains: Map[String, Int])
     putUnsignedBigInt(bytes, i)
   }
 
-  // FIXME: following is buggy when it comes to DNS compression
   def getDomainName(): String = {
-    def getDomainNamePart(): String = {
+    def getDomainNamePart(positions: Set[Int]): List[String] = {
       getUnsignedInt(1) match {
         case s if (s & 0xC0) != 0 =>
           buf.position(buf.position() - 1)
           val ptr = getUnsignedInt(2) - 0xC000
           val pos = buf.position()
+          assert(!(positions contains pos))
           buf.position(ptr)
-          val dn = getDomainName()
+          val dn = getDomainNamePart(positions + pos)
           buf.position(pos)
           dn
-        case s if s == 0 => ""
-        case s => (0 until s).map(_ => buf.get().toChar).mkString + "." + getDomainNamePart()
+        case s if s == 0 => Nil
+        case s => ((0 until s).map(_ => buf.get().toChar).mkString) :: getDomainNamePart(positions)
       }
     }
-    getDomainNamePart()
+    getDomainNamePart(Set()).mkString(".")
   }
 
   def putDomainName(dn: String): MessageBuffer = {

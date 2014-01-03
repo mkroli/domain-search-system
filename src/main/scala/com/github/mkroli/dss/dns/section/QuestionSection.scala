@@ -22,6 +22,9 @@ case class QuestionSection(
   qname: String,
   qtype: Int,
   qclass: Int) extends MessageBufferEncoder {
+  require(qtype >= 0 && qtype < (1 << 16))
+  require(qclass >= 0 && qclass < (1 << 16))
+
   def apply(buf: MessageBuffer) = {
     buf
       .putDomainName(qname)
