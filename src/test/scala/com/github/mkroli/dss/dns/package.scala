@@ -22,5 +22,7 @@ package object dns {
 
   def maxInt(bits: Int) = maxLong(bits).toInt
 
-  def bytes(s: String) = s.filter(' ' !=).sliding(2, 2).map(BigInt(_, 16).toByte).toList
+  private val hexChars = ('0' to '9') ++ ('A' to 'Z') ++ ('a' to 'z') toSet
+
+  def bytes(s: String) = s.filter(hexChars).sliding(2, 2).map(BigInt(_, 16).toByte).toList
 }
