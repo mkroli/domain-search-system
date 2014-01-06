@@ -33,9 +33,10 @@ object Build extends sbt.Build {
     scalacOptions ++= Seq("-feature", "-unchecked", "-deprecation"))
 
   lazy val projectDependencies = Seq(
+    resolvers += "mkroli" at "http://dl.bintray.com/mkroli/maven",
     libraryDependencies ++= Seq(
-      "com.google.guava" % "guava" % "15.0",
-      "com.google.code.findbugs" % "jsr305" % "2.0.2" % "provided",
+      "com.github.mkroli" %% "dns4s-core" % "0.1",
+      "com.github.mkroli" %% "dns4s-akka" % "0.1",
       "com.typesafe" % "config" % "1.0.2",
       "com.typesafe" %% "scalalogging-slf4j" % "1.0.1",
       "ch.qos.logback" % "logback-classic" % "1.0.13",
@@ -46,8 +47,7 @@ object Build extends sbt.Build {
       "io.spray" % "spray-can" % "1.2.0",
       "io.spray" % "spray-routing" % "1.2.0",
       "org.json4s" %% "json4s-native" % "3.2.6",
-      "nl.grons" %% "metrics-scala" % "3.0.4",
-      "org.scalatest" %% "scalatest" % "2.0" % "test"))
+      "nl.grons" %% "metrics-scala" % "3.0.4"))
 
   lazy val projectWebResourceSettings = Seq(
     webResources ++= Map(
