@@ -6,7 +6,7 @@ SBT=java -jar $(SBT_LAUNCH_JAR)
 sbt:
 	[ -r $(SBT_LAUNCH_JAR) ] \
 		|| wget -O $(SBT_LAUNCH_JAR) \
-			http://repo.typesafe.com/typesafe/ivy-releases/org.scala-sbt/sbt-launch//0.12.4/sbt-launch.jar
+			http://repo.typesafe.com/typesafe/ivy-releases/org.scala-sbt/sbt-launch//0.13.1/sbt-launch.jar
 
 override_dh_auto_clean:
 	rm -rf target project/target project/project
