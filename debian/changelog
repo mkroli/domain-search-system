@@ -1,3 +1,9 @@
+dss (0.6) unstable; urgency=medium
+
+  * extracted dns4s
+
+ -- Michael Krolikowski <mkroli@yahoo.de>  Sat, 01 Feb 2014 00:04:56 +0100
+
 dss (0.5) unstable; urgency=low
 
   * fuzzy search
