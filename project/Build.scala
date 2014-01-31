@@ -35,15 +35,15 @@ object Build extends sbt.Build {
   lazy val projectDependencies = Seq(
     resolvers += "mkroli" at "http://dl.bintray.com/mkroli/maven",
     libraryDependencies ++= Seq(
-      "com.github.mkroli" %% "dns4s-core" % "0.1",
-      "com.github.mkroli" %% "dns4s-akka" % "0.1",
-      "com.typesafe" % "config" % "1.0.2",
+      "com.github.mkroli" %% "dns4s-core" % "0.2",
+      "com.github.mkroli" %% "dns4s-akka" % "0.2",
+      "com.typesafe" % "config" % "1.2.0",
       "com.typesafe" %% "scalalogging-slf4j" % "1.0.1",
-      "ch.qos.logback" % "logback-classic" % "1.0.13",
+      "ch.qos.logback" % "logback-classic" % "1.1.0",
       "com.typesafe.akka" %% "akka-actor" % "2.2.3",
-      "org.apache.lucene" % "lucene-core" % "4.6.0",
-      "org.apache.lucene" % "lucene-analyzers-common" % "4.6.0",
-      "org.apache.lucene" % "lucene-queryparser" % "4.6.0",
+      "org.apache.lucene" % "lucene-core" % "4.6.1",
+      "org.apache.lucene" % "lucene-analyzers-common" % "4.6.1",
+      "org.apache.lucene" % "lucene-queryparser" % "4.6.1",
       "io.spray" % "spray-can" % "1.2.0",
       "io.spray" % "spray-routing" % "1.2.0",
       "org.json4s" %% "json4s-native" % "3.2.6",
@@ -51,8 +51,8 @@ object Build extends sbt.Build {
 
   lazy val projectWebResourceSettings = Seq(
     webResources ++= Map(
-      "less/bootstrap.min.css" -> "http://netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css",
-      "less/bootstrap-theme.min.css" -> "http://netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap-theme.min.css"))
+      "less/bootstrap.min.css" -> "http://netdna.bootstrapcdn.com/bootstrap/3.1.0/css/bootstrap.min.css",
+      "less/bootstrap-theme.min.css" -> "http://netdna.bootstrapcdn.com/bootstrap/3.1.0/css/bootstrap-theme.min.css"))
 
   lazy val projectClasspathSettings = Seq(
     unmanagedSourceDirectories in Compile <++= baseDirectory { base =>
