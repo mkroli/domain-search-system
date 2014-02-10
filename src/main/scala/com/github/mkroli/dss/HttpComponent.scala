@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Michael Krolikowski
+ * Copyright 2013, 2014 Michael Krolikowski
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,7 +33,7 @@ trait HttpComponent {
 
   IO(Http)(actorSystem) ? Http.Bind(
     actorSystem.actorOf(Props(new DssHttpServiceActor)),
-    "localhost",
+    interface = config.getString("http.interface"),
     port = config.getInt("http.port"))
 
   class DssHttpServiceActor extends HttpServiceActor with BasicUnmarshallers with Json4sSupport {

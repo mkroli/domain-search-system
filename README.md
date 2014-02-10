@@ -60,16 +60,20 @@ Configuration
 dss.conf:
 
 	server {
-	  bind.port = 53        # the port where to bind to
+	  bind.port = 53          # the port where to bind to
 	  fallback {
-	    address = "8.8.8.8" # the IP of the DNS server used as relay
-	    port = 53           # the port of the DNS server used as relay
+	    address = "8.8.8.8"   # the IP of the DNS server used as relay
+	    port = 53             # the port of the DNS server used as relay
 	  }
+	  autoindex = true        # automatically add successfully looked up hosts to the index
 	}
 	
 	index.include {
-	  host = true           # whether to include the hostname in the search index
-	  domain = true         # whether to include the domainname in the search index
+	  host = true             # whether to include the hostname in the search index
+	  domain = true           # whether to include the domainname in the search index
 	}
 	
-	http.port = 5380        # port of the admin ui
+	http {
+	  port = 5380             # port of the admin ui
+	  interface = "127.0.0.1" # the interface the admin ui binds to
+	}
