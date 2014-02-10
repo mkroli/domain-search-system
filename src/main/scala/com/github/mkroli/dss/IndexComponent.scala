@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Michael Krolikowski
+ * Copyright 2013, 2014 Michael Krolikowski
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,6 +51,7 @@ import akka.actor.Stash
 
 case class IndexItem(id: String, text: String)
 case class RemoveFromIndex(id: String)
+case class GetFromIndex(id: String)
 case class SearchIndex(query: String)
 case class GetAllDocuments(start: Int, end: Int)
 
@@ -102,6 +103,12 @@ trait IndexComponent {
       indexWriter.deleteDocuments(new TermQuery(new Term("id", host)))
     }
 
+    def getFromIndex(indexSearcher: IndexSearcher, host: String) = {
+      indexSearcher.search(new TermQuery(new Term("id", host)), 1).scoreDocs.toSeq.map { d =>
+        indexSearcher.doc(d.doc).get("text")
+      }.headOption
+    }
+
     def search(indexSearcher: IndexSearcher, query: String) = {
       val q = queryParser.parse(query.replace('.', ' '))
       indexSearcher.search(q, 1).scoreDocs.toSeq.map { d =>
@@ -134,6 +141,9 @@ trait IndexComponent {
         stash
         indexReader.close()
         goto(Uncommitted) using uncommitted
+      case Event(GetFromIndex(id), Right((_, indexSearcher))) =>
+        sender ! getFromIndex(indexSearcher, id)
+        stay
       case Event(SearchIndex(query), Right((_, indexSearcher))) =>
         sender ! search(indexSearcher, query)
         stay
@@ -149,7 +159,7 @@ trait IndexComponent {
       case Event(RemoveFromIndex(id), Left(indexWriter)) =>
         removeFromIndex(indexWriter, id)
         stay
-      case Event(msg @ (SearchIndex(_) | GetAllDocuments(_, _) | StateTimeout), Left(indexWriter)) =>
+      case Event(msg @ (GetFromIndex(_) | SearchIndex(_) | GetAllDocuments(_, _) | StateTimeout), Left(indexWriter)) =>
         if (msg != StateTimeout) stash
         indexWriter.close()
         goto(Committed) using committed

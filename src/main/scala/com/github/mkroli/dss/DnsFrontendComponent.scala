@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Michael Krolikowski
+ * Copyright 2013, 2014 Michael Krolikowski
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,10 @@ package com.github.mkroli.dss
 import java.net.Inet4Address
 import java.net.InetAddress
 import java.net.InetSocketAddress
+
 import scala.concurrent.Future
+import scala.util.Try
+
 import com.github.mkroli.dns4s.akka.Dns
 import com.github.mkroli.dns4s.dsl.ARecord
 import com.github.mkroli.dns4s.dsl.Answers
@@ -26,6 +29,7 @@ import com.github.mkroli.dns4s.dsl.CNameRecord
 import com.github.mkroli.dns4s.dsl.ClassIN
 import com.github.mkroli.dns4s.dsl.ComposableMessage
 import com.github.mkroli.dns4s.dsl.NameError
+import com.github.mkroli.dns4s.dsl.NoError
 import com.github.mkroli.dns4s.dsl.QName
 import com.github.mkroli.dns4s.dsl.Query
 import com.github.mkroli.dns4s.dsl.QuestionSectionModifierString
@@ -35,12 +39,12 @@ import com.github.mkroli.dns4s.dsl.TypeA
 import com.github.mkroli.dns4s.dsl.resourceRecordModifierToResourceRecord
 import com.github.mkroli.dns4s.dsl.stringToQuestionSection
 import com.github.mkroli.dns4s.dsl.~
+
 import akka.actor.Actor
 import akka.actor.Props
 import akka.io.IO
 import akka.pattern.ask
 import akka.pattern.pipe
-import scala.util.Try
 
 trait DnsFrontendComponent {
   self: AkkaComponent with IndexComponent with ConfigurationComponent with AkkaMetricsComponent =>
@@ -49,6 +53,7 @@ trait DnsFrontendComponent {
   lazy val fallbackDnsAddress = new InetSocketAddress(
     config.getString("server.fallback.address"),
     config.getInt("server.fallback.port"))
+  lazy val autoIndex = config.getBoolean("server.autoindex")
 
   lazy val dnsHandlerActor = actorSystem.actorOf(
     Props(new MetricActor(
@@ -96,6 +101,11 @@ trait DnsFrontendComponent {
                 }
               case _ => Future(response)
             }
+          case Response(response) ~ Questions(QName(host) :: Nil) ~ NoError() if autoIndex =>
+            (indexActor ? GetFromIndex(host)).mapTo[Option[String]].collect {
+              case None => indexActor ! IndexItem(host, "")
+            }
+            Future(response)
           case Response(response) => Future(response)
         } pipeTo sender
     }
