@@ -101,7 +101,7 @@ trait DnsFrontendComponent {
                 }
               case _ => Future(response)
             }
-          case Response(response) ~ Questions(QName(host) :: Nil) ~ NoError() if autoIndex =>
+          case Response(response) ~ NoError() ~ Questions(QName(host) :: Nil) ~ Answers(_ :: _) if autoIndex =>
             (indexActor ? GetFromIndex(host)).mapTo[Option[String]].collect {
               case None => indexActor ! IndexItem(host, "")
             }
