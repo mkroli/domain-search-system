@@ -16,10 +16,12 @@
 package com.github.mkroli.dss
 
 import java.io.File
+import java.lang.{Float => JFloat}
 
 import scala.collection.JavaConversions.mapAsJavaMap
 import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps
+import scala.math.pow
 
 import org.apache.lucene.document.Document
 import org.apache.lucene.document.Field
@@ -29,7 +31,7 @@ import org.apache.lucene.index.DirectoryReader
 import org.apache.lucene.index.IndexWriter
 import org.apache.lucene.index.IndexWriterConfig
 import org.apache.lucene.index.Term
-import org.apache.lucene.queryparser.classic.MultiFieldQueryParser
+import org.apache.lucene.queryparser.simple.SimpleQueryParser
 import org.apache.lucene.search.IndexSearcher
 import org.apache.lucene.search.MatchAllDocsQuery
 import org.apache.lucene.search.TermQuery
@@ -65,7 +67,7 @@ trait IndexComponent {
   case object Uncommitted extends State
 
   class IndexActor extends Actor with Stash with FSM[State, Either[IndexWriter, (DirectoryReader, IndexSearcher)]] {
-    val analyzer = DssAnalyzer(Version.LUCENE_46) {
+    val analyzer = DssAnalyzer(Version.LUCENE_47) {
       case f if f.endsWith("_fuzzy") => filterChain(standard, lowercase, ngram)
       case f => filterChain(standard, lowercase, stopwords)
     }
@@ -73,11 +75,17 @@ trait IndexComponent {
       case fn if fn.isEmpty => new RAMDirectory
       case fn => FSDirectory.open(new File(fn))
     }
-    def indexWriterConfig = new IndexWriterConfig(Version.LUCENE_46, analyzer)
-    val queryParser = new MultiFieldQueryParser(Version.LUCENE_46,
-      List("text", "host", "domain") flatMap (s => List(s"${s}_fuzzy", s)) toArray,
+    def indexWriterConfig = new IndexWriterConfig(Version.LUCENE_47, analyzer)
+    val queryParser = new SimpleQueryParser(
       analyzer,
-      mapAsJavaMap(Map("text" -> 8f, "host" -> 4f, "domain" -> 2f)))
+      List("domain", "host", "text")
+        .zipWithIndex
+        .toMap
+        .mapValues(i => pow(2, i + 1).toFloat: JFloat)
+        .flatMap {
+          case (field, weight) =>
+            List(field -> weight, s"${field}_fuzzy" -> (1f: JFloat))
+        })
     val includeHostname = config.getBoolean("index.include.host")
     val includeDomain = config.getBoolean("index.include.domain")
 
