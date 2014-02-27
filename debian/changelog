@@ -1,3 +1,11 @@
+dss (0.7) unstable; urgency=medium
+
+  * automatically add hosts to index on lookup success
+  * specify network interface for admin ui
+  * updated dependencies
+
+ -- Michael Krolikowski <mkroli@yahoo.de>  Thu, 27 Feb 2014 23:17:54 +0100
+
 dss (0.6) unstable; urgency=medium
 
   * extracted dns4s
