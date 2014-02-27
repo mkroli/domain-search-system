@@ -16,7 +16,7 @@
 http://sugarjs.com/download
 
 # AngularJS
-http://code.angularjs.org/1.2.10/angular.min.js
-http://code.angularjs.org/1.2.10/angular-resource.min.js
+http://code.angularjs.org/1.2.13/angular.min.js
+http://code.angularjs.org/1.2.13/angular-resource.min.js
 
 dss/dss.coffee
