@@ -13,10 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-resolvers += Resolver.url(
-  "mkroli",
-  url("http://dl.bintray.com/mkroli/generic"))(Resolver.ivyStylePatterns)
-
 addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "2.4.0")
 
 addSbtPlugin("org.xerial.sbt" % "sbt-pack" % "0.3.6")
