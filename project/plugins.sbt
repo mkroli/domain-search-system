@@ -13,16 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "2.4.0")
+addSbtPlugin("org.xerial.sbt" % "sbt-pack" % "0.5.1")
 
-addSbtPlugin("org.xerial.sbt" % "sbt-pack" % "0.3.6")
+addSbtPlugin("com.github.gseitz" % "sbt-release" % "0.8.3")
 
-addSbtPlugin("com.github.gseitz" % "sbt-release" % "0.8")
+addSbtPlugin("com.untyped" %% "sbt-js" % "0.7")
 
-addSbtPlugin("com.untyped" %% "sbt-js" % "0.6")
-
-addSbtPlugin("com.untyped" %% "sbt-less" % "0.6")
-
-addSbtPlugin("io.spray" % "sbt-revolver" % "0.7.1")
+addSbtPlugin("com.untyped" %% "sbt-less" % "0.7")
 
 addSbtPlugin("com.github.mkroli" % "sbt-webresource" % "0.1")

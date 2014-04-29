@@ -67,7 +67,7 @@ trait IndexComponent {
   case object Uncommitted extends State
 
   class IndexActor extends Actor with Stash with FSM[State, Either[IndexWriter, (DirectoryReader, IndexSearcher)]] {
-    val analyzer = DssAnalyzer(Version.LUCENE_47) {
+    val analyzer = DssAnalyzer(Version.LUCENE_48) {
       case f if f.endsWith("_fuzzy") => filterChain(standard, lowercase, ngram)
       case f => filterChain(standard, lowercase, stopwords)
     }
@@ -75,7 +75,7 @@ trait IndexComponent {
       case fn if fn.isEmpty => new RAMDirectory
       case fn => FSDirectory.open(new File(fn))
     }
-    def indexWriterConfig = new IndexWriterConfig(Version.LUCENE_47, analyzer)
+    def indexWriterConfig = new IndexWriterConfig(Version.LUCENE_48, analyzer)
     val queryParser = new SimpleQueryParser(
       analyzer,
       List("domain", "host", "text")

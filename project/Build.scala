@@ -19,7 +19,6 @@ import sbtrelease._
 import sbtrelease.ReleasePlugin._
 import sbtrelease.ReleasePlugin.ReleaseKeys._
 import sbtrelease.ReleaseStateTransformations._
-import spray.revolver.RevolverPlugin._
 import xerial.sbt.Pack._
 import com.untyped.sbtjs.Plugin._
 import com.untyped.sbtless.Plugin._
@@ -29,25 +28,27 @@ object Build extends sbt.Build {
   lazy val projectSettings = Seq(
     name := "domain-search-system",
     organization := "com.github.mkroli",
-    scalaVersion := "2.10.3",
+    scalaVersion := "2.11.0",
     scalacOptions ++= Seq("-feature", "-unchecked", "-deprecation"))
 
   lazy val projectDependencies = Seq(
-    resolvers += "mkroli" at "http://dl.bintray.com/mkroli/maven",
+    resolvers ++= Seq(
+      "mkroli" at "http://dl.bintray.com/mkroli/maven",
+      "spray repo" at "http://repo.spray.io"),
     libraryDependencies ++= Seq(
-      "com.github.mkroli" %% "dns4s-core" % "0.2",
-      "com.github.mkroli" %% "dns4s-akka" % "0.2",
+      "com.github.mkroli" %% "dns4s-core" % "0.3",
+      "com.github.mkroli" %% "dns4s-akka" % "0.3",
       "com.typesafe" % "config" % "1.2.0",
-      "com.typesafe" %% "scalalogging-slf4j" % "1.1.0",
-      "ch.qos.logback" % "logback-classic" % "1.1.0",
-      "com.typesafe.akka" %% "akka-actor" % "2.2.3",
-      "org.apache.lucene" % "lucene-core" % "4.6.1",
-      "org.apache.lucene" % "lucene-analyzers-common" % "4.7.0",
-      "org.apache.lucene" % "lucene-queryparser" % "4.7.0",
-      "io.spray" % "spray-can" % "1.2.0",
-      "io.spray" % "spray-routing" % "1.2.0",
-      "org.json4s" %% "json4s-native" % "3.2.7",
-      "nl.grons" %% "metrics-scala" % "3.0.4"))
+      "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2",
+      "ch.qos.logback" % "logback-classic" % "1.1.2",
+      "com.typesafe.akka" %% "akka-actor" % "2.3.2",
+      "org.apache.lucene" % "lucene-core" % "4.8.0",
+      "org.apache.lucene" % "lucene-analyzers-common" % "4.8.0",
+      "org.apache.lucene" % "lucene-queryparser" % "4.8.0",
+      "io.spray" %% "spray-can" % "1.3.1-20140423",
+      "io.spray" %% "spray-routing" % "1.3.1-20140423",
+      "org.json4s" %% "json4s-native" % "3.2.9",
+      "nl.grons" %% "metrics-scala" % "3.1.1"))
 
   lazy val projectWebResourceSettings = Seq(
     webResources ++= Map(
@@ -118,6 +119,5 @@ object Build extends sbt.Build {
       webResourceSettings ++
       projectWebResourceSettings ++
       lessSettings ++
-      projectLessSettings ++
-      Revolver.settings)
+      projectLessSettings)
 }

@@ -61,7 +61,7 @@ trait DnsFrontendComponent {
       timerName = Some("timer"),
       meterName = Some("meter"))))
 
-  IO(Dns)(actorSystem) ! Dns.Bind(dnsHandlerActor, listenPort, timeout)
+  IO(Dns)(actorSystem) ? Dns.Bind(dnsHandlerActor, listenPort, timeout)
 
   class DnsHandlerActor extends Actor {
     lazy val dnsActor = IO(Dns)(actorSystem)
@@ -92,7 +92,7 @@ trait DnsFrontendComponent {
                   Query ~ Questions(result),
                   fallbackDnsAddress)
                 dnsActor ? lookup map {
-                  case Response() ~ Answers(answers) =>
+                  case Response(_) ~ Answers(answers) =>
                     Response ~
                       Questions(questions: _*) ~
                       Answers(qname ~ CNameRecord(result)) ~

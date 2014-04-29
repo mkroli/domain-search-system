@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Michael Krolikowski
+ * Copyright 2013, 2014 Michael Krolikowski
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,9 +15,9 @@
  */
 package com.github.mkroli.dss
 
-import com.typesafe.scalalogging.slf4j.Logging
+import com.typesafe.scalalogging.slf4j.StrictLogging
 
-object Boot extends App with Logging {
+object Boot extends App with StrictLogging {
   val applicationContext = new AnyRef with
     AkkaComponent with
     ConfigurationComponent with
